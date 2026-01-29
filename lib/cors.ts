@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const allowedOrigins = [
   'https://xatna-markasi-n1.uz',
+  'https://xatna-front.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:5174',
@@ -12,7 +13,7 @@ const allowedOrigins = [
 ];
 
 export function corsHeaders(request?: NextRequest) {
-  let origin = process.env.FRONTEND_URL || 'https://xatna-markasi-n1.uz';
+  let origin = process.env.FRONTEND_URL || 'https://xatna-front.vercel.app';
   
   // В development полностью отключаем CORS проверки - разрешаем любой origin
   if (process.env.NODE_ENV === 'development') {
@@ -31,6 +32,9 @@ export function corsHeaders(request?: NextRequest) {
         if (allowedOrigins.includes(requestOrigin)) {
           origin = requestOrigin;
         } else if (requestOrigin.includes('localhost') || requestOrigin.includes('127.0.0.1')) {
+          origin = requestOrigin;
+        } else if (requestOrigin.includes('vercel.app')) {
+          // Разрешаем все vercel.app домены
           origin = requestOrigin;
         }
       }
