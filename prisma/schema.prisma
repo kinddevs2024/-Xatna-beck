@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite не поддерживает enums, используем String
+// UserRole: ADMIN, DOCTOR, CLIENT, SUPER_ADMIN
+// BookingStatus: PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String?
+  phone_number  String?
+  tg_id         String?  @unique
+  tg_username   String?  @unique
+  password      String?
+  role          String   @default("CLIENT") // UserRole: ADMIN, DOCTOR, CLIENT, SUPER_ADMIN
+  working       Boolean? @default(false)
+  work_start_time String?
+  work_end_time   String?
+  profile_image   String?
+  clientBookings Booking[] @relation("ClientBookings")
+  doctorBookings Booking[] @relation("DoctorBookings")
+  created_at    DateTime  @default(now())
+
+  @@map("users")
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  client_id       Int?
+  doctor_id       Int?
+  date            String        // yyyy-mm-dd
+  time            String        // HH:mm
+  status          String        @default("PENDING") // BookingStatus: PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
+  comment         String?
+  notification_sent Boolean      @default(false)
+  client          User?         @relation("ClientBookings", fields: [client_id], references: [id], onDelete: SetNull)
+  doctor          User?         @relation("DoctorBookings", fields: [doctor_id], references: [id], onDelete: SetNull)
+  created_at      DateTime      @default(now())
+
+  @@map("bookings")
+}
+
+model Service {
+  id              Int           @id @default(autoincrement())
+  name            String
+  price           Int           @default(50000)
+  duration        Int           @default(30) // Всегда 30 минут
+  image_url       String?
+  created_at      DateTime      @default(now())
+
+  @@map("services")
+}
