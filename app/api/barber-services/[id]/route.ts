@@ -24,8 +24,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const serviceId = parseInt(params.id);
-    if (isNaN(serviceId)) {
+    const serviceId = params.id;
+    if (!serviceId) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 
@@ -60,8 +60,8 @@ export async function PATCH(
       return user;
     }
 
-    const serviceId = parseInt(params.id);
-    if (isNaN(serviceId)) {
+    const serviceId = params.id;
+    if (!serviceId) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 
@@ -133,8 +133,8 @@ export async function DELETE(
       return user;
     }
 
-    const serviceId = parseInt(params.id);
-    if (isNaN(serviceId)) {
+    const serviceId = params.id;
+    if (!serviceId) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 

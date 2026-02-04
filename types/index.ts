@@ -19,7 +19,7 @@ export const BookingStatus = {
 export type BookingStatus = typeof BookingStatus[keyof typeof BookingStatus];
 
 export interface User {
-  id: number;
+  id: string;
   name?: string | null;
   phone_number?: string | null;
   tg_id?: string | null;
@@ -34,9 +34,9 @@ export interface User {
 }
 
 export interface Booking {
-  id: number;
-  client_id?: number | null;
-  doctor_id?: number | null;
+  id: string;
+  client_id?: string | null;
+  doctor_id?: string | null;
   date: string;
   time: string;
   status: BookingStatus;
@@ -49,7 +49,7 @@ export interface Booking {
 
 export interface CreateBookingDto {
   phone_number: string;
-  doctor_id?: number;
+  doctor_id?: string;
   date: string;
   time: string;
   client_name?: string;

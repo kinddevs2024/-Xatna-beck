@@ -11,7 +11,7 @@ export class BookingService {
     this.userService = new UserService();
   }
 
-  async create(createBookingDto: CreateBookingDto & { client_id?: number }): Promise<Booking> {
+  async create(createBookingDto: CreateBookingDto & { client_id?: string }): Promise<Booking> {
     const { phone_number, client_name, date, time, client_id } = createBookingDto;
 
     // Найти или создать default доктора
@@ -185,12 +185,12 @@ export class BookingService {
   }
 
   async checkTimeSlotAvailability(
-    doctorId: number,
+    doctorId: string,
     date: string,
     time: string,
     duration: number,
   ): Promise<boolean> {
-    if (!doctorId || isNaN(doctorId)) {
+    if (!doctorId || String(doctorId).trim() === '') {
       throw new Error("Noto'g'ri doktor ID format");
     }
 
@@ -305,7 +305,7 @@ export class BookingService {
     return bookings as Booking[];
   }
 
-  async findOne(id: number): Promise<Booking | null> {
+  async findOne(id: string): Promise<Booking | null> {
     const booking = await prisma.booking.findUnique({
       where: { id },
       include: {
@@ -316,7 +316,7 @@ export class BookingService {
     return booking as Booking | null;
   }
 
-  async findByDoctorId(doctorId: number): Promise<Booking[]> {
+  async findByDoctorId(doctorId: string): Promise<Booking[]> {
     const bookings = await prisma.booking.findMany({
       where: { doctor_id: doctorId },
       include: {
@@ -327,7 +327,7 @@ export class BookingService {
     return bookings as Booking[];
   }
 
-  async findByClientId(clientId: number): Promise<Booking[]> {
+  async findByClientId(clientId: string): Promise<Booking[]> {
     const bookings = await prisma.booking.findMany({
       where: { client_id: clientId },
       include: {
@@ -350,7 +350,7 @@ export class BookingService {
     return bookings as Booking[];
   }
 
-  async updateStatus(id: number, status: BookingStatus): Promise<Booking> {
+  async updateStatus(id: string, status: BookingStatus): Promise<Booking> {
     // Получить текущее бронирование для сохранения старого статуса
     const oldBooking = await prisma.booking.findUnique({
       where: { id },
@@ -399,7 +399,7 @@ export class BookingService {
     return booking as Booking;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await prisma.booking.delete({
       where: { id },
     });
@@ -439,7 +439,7 @@ export class BookingService {
     const totalRevenue = completedBookings.length * FIXED_SERVICE_PRICE;
 
     // Группировка по докторам
-    const doctorStatsMap = new Map<number, {
+    const doctorStatsMap = new Map<string, {
       barber: any;
       bookings: any[];
     }>();

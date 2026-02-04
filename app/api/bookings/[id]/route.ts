@@ -23,8 +23,8 @@ export async function GET(
       return user;
     }
 
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const id = params.id;
+    if (!id) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 
@@ -56,8 +56,8 @@ export async function PATCH(
       return createErrorResponse('Ruxsat yo\'q', 403, request);
     }
 
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const id = params.id;
+    if (!id) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 
@@ -91,8 +91,8 @@ export async function DELETE(
       return createErrorResponse('Ruxsat yo\'q', 403, request);
     }
 
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const id = params.id;
+    if (!id) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 

@@ -24,8 +24,8 @@ export async function PATCH(
       return user;
     }
 
-    const userId = parseInt(params.id);
-    if (isNaN(userId)) {
+    const userId = params.id;
+    if (!userId) {
       return createErrorResponse("Noto'g'ri ID format", 400, request);
     }
 

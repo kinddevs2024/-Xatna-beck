@@ -19,7 +19,7 @@ export class UserService {
     work_start_time?: string;
     work_end_time?: string;
     profile_image?: string;
-  }, currentUser?: { id: number; role: UserRole }): Promise<User> {
+  }, currentUser?: { id: string; role: UserRole }): Promise<User> {
     if (data.role === UserRole.ADMIN) {
       if (!currentUser || currentUser.role !== UserRole.SUPER_ADMIN) {
         throw new Error('ADMIN role\'ga ega foydalanuvchini faqat SUPER_ADMIN yarata oladi');
@@ -79,7 +79,7 @@ export class UserService {
     return user as User;
   }
 
-  async findOne(id: number): Promise<User | null> {
+  async findOne(id: string): Promise<User | null> {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
@@ -122,7 +122,7 @@ export class UserService {
     return users as User[];
   }
 
-  async update(id: number, data: Partial<User>): Promise<User> {
+  async update(id: string, data: Partial<User>): Promise<User> {
     // Фильтруем только разрешенные поля для обновления
     const allowedFields: (keyof User)[] = [
       'name',

@@ -46,6 +46,10 @@ class TelegramService {
     }
 
     try {
+      if (this.bot && this.pollingStarted) {
+        return;
+      }
+
       console.log('🔄 Initializing Telegram Bot...');
       console.log(`[Telegram Bot] Token present: ${this.botToken.substring(0, 10)}...`);
 
@@ -322,6 +326,12 @@ class TelegramService {
 
     // Обработка ошибок polling
     this.bot.on('polling_error', (error) => {
+      const message = error?.message || String(error);
+      if (message.includes('ETELEGRAM: 409 Conflict')) {
+        console.error('[Telegram Bot] Polling conflict detected. Stopping polling for this instance.');
+        this.stopPolling().catch(() => {});
+        return;
+      }
       console.error('[Telegram Bot] Polling error:', {
         errorMessage: error.message || error,
         timestamp: new Date().toISOString()
@@ -1335,47 +1345,65 @@ class TelegramService {
         if (monthKeyToUse) {
           const availableDays = this.getAvailableDaysForMonth(monthKeyToUse);
 
-          await this.bot!.editMessageText(
-            `❌ ${date} kuni mavjud vaqtlar yo'q.\n\n` +
-            `Boshqa kunni tanlang:`,
-            {
-              chat_id: chatId,
-              message_id: query.message?.message_id,
-              reply_markup: {
-                inline_keyboard: this.createDayKeyboard(availableDays, monthKeyToUse)
+          try {
+            await this.bot!.editMessageText(
+              `❌ ${date} kuni mavjud vaqtlar yo'q.\n\n` +
+              `Boshqa kunni tanlang:`,
+              {
+                chat_id: chatId,
+                message_id: query.message?.message_id,
+                reply_markup: {
+                  inline_keyboard: this.createDayKeyboard(availableDays, monthKeyToUse)
+                }
               }
+            );
+          } catch (editError: any) {
+            if (!editError?.message?.includes('message is not modified')) {
+              throw editError;
             }
-          );
+          }
         } else {
           // Если не можем определить месяц, возвращаем к выбору месяца
-          await this.bot!.editMessageText(
-            `❌ ${date} kuni mavjud vaqtlar yo'q. Boshqa oyni tanlang:`,
-            {
-              chat_id: chatId,
-              message_id: query.message?.message_id,
-              reply_markup: {
-                inline_keyboard: this.createMonthKeyboard(this.getAvailableMonths())
+          try {
+            await this.bot!.editMessageText(
+              `❌ ${date} kuni mavjud vaqtlar yo'q. Boshqa oyni tanlang:`,
+              {
+                chat_id: chatId,
+                message_id: query.message?.message_id,
+                reply_markup: {
+                  inline_keyboard: this.createMonthKeyboard(this.getAvailableMonths())
+                }
               }
+            );
+          } catch (editError: any) {
+            if (!editError?.message?.includes('message is not modified')) {
+              throw editError;
             }
-          );
+          }
         }
         return;
       }
 
-      await this.bot!.editMessageText(
-        `⏰ *Vaqtni tanlang*\n\n` +
-        `📅 Sana: ${new Date(date).toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n` +
-        `👨‍⚕️ Shifokor: ${doctor.name}\n\n` +
-        `Mavjud vaqtlar: ${availableSlots.length} ta`,
-        {
-          chat_id: chatId,
-          message_id: query.message?.message_id,
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: this.createTimeKeyboard(availableSlots)
+      try {
+        await this.bot!.editMessageText(
+          `⏰ *Vaqtni tanlang*\n\n` +
+          `📅 Sana: ${new Date(date).toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n` +
+          `👨‍⚕️ Shifokor: ${doctor.name}\n\n` +
+          `Mavjud vaqtlar: ${availableSlots.length} ta`,
+          {
+            chat_id: chatId,
+            message_id: query.message?.message_id,
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: this.createTimeKeyboard(availableSlots)
+            }
           }
+        );
+      } catch (editError: any) {
+        if (!editError?.message?.includes('message is not modified')) {
+          throw editError;
         }
-      );
+      }
     } catch (error: any) {
       console.error('Error in handleDateSelection:', error);
       await this.bot!.sendMessage(
@@ -1510,7 +1538,7 @@ class TelegramService {
       state.serviceId = null;
     } else {
       // Пользователь выбрал сервис
-      const serviceId = parseInt(data.replace('service_', ''));
+      const serviceId = data.replace('service_', '');
       const services = await this.getServices();
       const selectedService = services.find(s => s.id === serviceId);
 
@@ -2207,7 +2235,7 @@ class TelegramService {
   /**
    * Получить доступные слоты для даты (с интервалом 30 минут)
    */
-  private async getAvailableSlots(doctorId: number, date: string): Promise<string[]> {
+  private async getAvailableSlots(doctorId: string, date: string): Promise<string[]> {
     const bookingService = new BookingService();
     const slots: string[] = [];
 
@@ -2408,7 +2436,15 @@ class TelegramService {
 }
 
 // Singleton instance - создается при импорте, но инициализируется лениво
-export const telegramService = new TelegramService();
+const globalForTelegram = globalThis as unknown as {
+  telegramService?: TelegramService;
+};
+
+export const telegramService = globalForTelegram.telegramService ?? new TelegramService();
+
+if (!globalForTelegram.telegramService) {
+  globalForTelegram.telegramService = telegramService;
+}
 
 // Инициализируем бота при первом API запросе (не в Edge Runtime)
 // Инициализация будет выполнена через ensureInitialized() при первом использовании

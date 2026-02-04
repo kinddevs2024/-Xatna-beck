@@ -8,8 +8,8 @@ import { z } from 'zod';
 
 const getAvailableSlotsSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  doctor_id: z.number().optional(),
-  barber_id: z.number().optional(), // Для совместимости с фронтендом
+  doctor_id: z.union([z.string(), z.number()]).optional(),
+  barber_id: z.union([z.string(), z.number()]).optional(), // Для совместимости с фронтендом
 });
 
 export async function OPTIONS(request: NextRequest) {
@@ -24,14 +24,12 @@ export async function GET(request: NextRequest) {
     const barberIdParam = searchParams.get('barber_id');
 
     // Нормализация данных
-    let doctorId: number | undefined;
+    let doctorId: string | undefined;
     if (doctorIdParam) {
-      const parsed = parseInt(doctorIdParam, 10);
-      doctorId = isNaN(parsed) ? undefined : parsed;
+      doctorId = String(doctorIdParam).trim();
     }
     if (!doctorId && barberIdParam) {
-      const parsed = parseInt(barberIdParam, 10);
-      doctorId = isNaN(parsed) ? undefined : parsed;
+      doctorId = String(barberIdParam).trim();
     }
 
     // Валидация
@@ -154,3 +152,4 @@ export async function GET(request: NextRequest) {
     return createErrorResponse(error.message || 'Xatolik yuz berdi', 500, request);
   }
 }
+

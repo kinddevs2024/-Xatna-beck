@@ -7,7 +7,7 @@ const JWT_SECRET: string = process.env.JWT_SECRET || process.env.JWT_TOKEN_SECRE
 const JWT_EXPIRATION: string = process.env.JWT_EXPIRATION || process.env.JWT_TOKEN_EXPIRATION || '7d';
 
 export interface TokenPayload {
-  id: number;
+  id: string;
   role: UserRole;
 }
 

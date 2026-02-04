@@ -8,8 +8,8 @@ import { z } from 'zod';
 const createMultipleBookingsSchema = z.object({
   bookings: z.array(z.object({
     phone_number: z.string().min(1),
-    doctor_id: z.number().optional(),
-    barber_id: z.number().optional(),
+    doctor_id: z.union([z.string(), z.number()]).optional(),
+    barber_id: z.union([z.string(), z.number()]).optional(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
     client_name: z.string().optional(),
@@ -60,3 +60,4 @@ export async function POST(request: NextRequest) {
     return createErrorResponse(error.message || 'Xatolik yuz berdi', 400, request);
   }
 }
+

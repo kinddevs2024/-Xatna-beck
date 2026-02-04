@@ -29,8 +29,8 @@ export async function PATCH(
       return createErrorResponse('Ruxsat yo\'q', 403, request);
     }
 
-    const userId = parseInt(params.id);
-    if (isNaN(userId)) {
+    const userId = String(params.id || '').trim();
+    if (!userId) {
       return createErrorResponse("Noto'g'ri foydalanuvchi ID format", 400, request);
     }
 
@@ -88,7 +88,7 @@ export async function PATCH(
     }
 
     // O'z rolini o'zgartirish mumkin emas
-    if (user.id === userId) {
+    if (String(user.id) === userId) {
       return createErrorResponse('O\'z rolingizni o\'zgartirib bo\'lmaydi. Boshqa admin yordamidan foydalaning', 403, request);
     }
 

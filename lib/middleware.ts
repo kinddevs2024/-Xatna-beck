@@ -37,7 +37,9 @@ export function roleMiddleware(allowedRoles: UserRole[]) {
       return false;
     }
     const hasRole = allowedRoles.includes(user.role);
-    console.log('[RoleMiddleware] User role:', user.role, 'Allowed roles:', allowedRoles, 'Result:', hasRole);
+    if (process.env.DEBUG_ROLES === 'true') {
+      console.log('[RoleMiddleware] User role:', user.role, 'Allowed roles:', allowedRoles, 'Result:', hasRole);
+    }
     return hasRole;
   };
 }

@@ -17,8 +17,8 @@ export async function GET(
       return user;
     }
 
-    const doctorId = parseInt(params.doctorId);
-    if (isNaN(doctorId)) {
+    const doctorId = params.doctorId;
+    if (!doctorId) {
       return createErrorResponse("Noto'g'ri doktor ID format", 400, request);
     }
 

@@ -23,8 +23,15 @@ export function validateEnv(): void {
       if (varName === 'JWT_SECRET' && value.length < 32) {
         invalid.push(`${varName} must be at least 32 characters long`);
       }
-      if (varName === 'DATABASE_URL' && !value.startsWith('file:') && !value.startsWith('postgresql://')) {
-        invalid.push(`${varName} must start with 'file:' (SQLite) or 'postgresql://' (PostgreSQL)`);
+      if (
+        varName === 'DATABASE_URL' &&
+        !value.startsWith('file:') &&
+        !value.startsWith('postgresql://') &&
+        !value.startsWith('postgres://') &&
+        !value.startsWith('mongodb://') &&
+        !value.startsWith('mongodb+srv://')
+      ) {
+        invalid.push(`${varName} must start with 'file:' (SQLite), 'postgresql://' (PostgreSQL), or 'mongodb://'/'mongodb+srv://' (MongoDB)`);
       }
     }
   }

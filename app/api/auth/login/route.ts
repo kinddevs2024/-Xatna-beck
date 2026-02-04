@@ -6,15 +6,11 @@ import { handleOptions } from '@/lib/cors';
 import { UserRole } from '@/types';
 import { z } from 'zod';
 import { initializeServer } from '@/lib/server-init';
-import { autoInitializeTelegramBot } from '@/lib/telegram-auto-init';
 
 // Инициализируем сервер при первом запросе
 initializeServer().catch(console.error);
 
-// Также пытаемся инициализировать Telegram бота
-if (process.env.BOT_TOKEN) {
-  autoInitializeTelegramBot().catch(console.error);
-}
+// Telegram бот инициализируется централизованно в server-init
 
 const loginSchema = z.object({
   tg_username: z.string().min(1),
