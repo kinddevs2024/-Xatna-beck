@@ -36,9 +36,10 @@ export async function POST(request: NextRequest) {
 
     for (const bookingData of validation.data.bookings) {
       try {
+        const doctorId = bookingData.doctor_id ?? bookingData.barber_id;
         const booking: CreateBookingDto = {
           phone_number: bookingData.phone_number,
-          doctor_id: bookingData.doctor_id || bookingData.barber_id,
+          doctor_id: doctorId !== undefined ? String(doctorId) : undefined,
           date: bookingData.date,
           time: bookingData.time,
           client_name: bookingData.client_name,
