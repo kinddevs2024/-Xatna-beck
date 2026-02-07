@@ -6,6 +6,33 @@ import { telegramService } from './services/telegram.service';
 import { autoInitializeTelegramBot } from './telegram-auto-init';
 import { validateEnv } from './env-validation';
 
+// Suppress noisy DeprecationWarning from legacy `url.parse()` usage in
+// third-party libraries. We only filter deprecation messages that mention
+// `url.parse` to avoid hiding other important warnings.
+if (typeof process !== 'undefined' && typeof process.on === 'function') {
+  process.on('warning', (warning: any) => {
+    try {
+      const msg = String(warning?.message || '');
+      const stack = String(warning?.stack || '');
+      if (warning && warning.name === 'DeprecationWarning' && (/url\.parse\(|\\burl\.parse\b/i.test(msg + stack))) {
+        // Intentionally ignore this specific deprecation to avoid polluting logs
+        return;
+      }
+    } catch (e) {
+      // If anything goes wrong, fall through to default logging below
+    }
+
+    // Default behavior: log the warning to console
+    // Keep formatting similar to Node's default output
+    try {
+      console.warn(`Warning: ${warning.name}: ${warning.message}`);
+      if (warning.stack) console.warn(warning.stack);
+    } catch (e) {
+      // noop
+    }
+  });
+}
+
 let serverInitialized = false;
 
 export async function initializeServer() {
