@@ -20,7 +20,8 @@ class TelegramService {
    * Check if bot is initialized
    */
   isInitialized(): boolean {
-    return !!this.bot && this.pollingStarted;
+    const useWebhook = process.env.TELEGRAM_USE_WEBHOOK === 'true' || process.env.TELEGRAM_WEBHOOK_MODE === 'true';
+    return !!this.bot && (this.pollingStarted || useWebhook);
   }
 
   /**
@@ -28,7 +29,8 @@ class TelegramService {
    */
   async ensureInitialized() {
     // Если уже инициализирован, возвращаем
-    if (this.bot && this.pollingStarted) {
+    const useWebhook = process.env.TELEGRAM_USE_WEBHOOK === 'true' || process.env.TELEGRAM_WEBHOOK_MODE === 'true';
+    if (this.bot && (this.pollingStarted || useWebhook)) {
       return;
     }
 
@@ -52,6 +54,8 @@ class TelegramService {
       return;
     }
 
+    const useWebhookMode = process.env.TELEGRAM_USE_WEBHOOK === 'true' || process.env.TELEGRAM_WEBHOOK_MODE === 'true';
+
     try {
       if (this.bot && this.pollingStarted) {
         return;
@@ -72,18 +76,24 @@ class TelegramService {
         throw prismaError;
       }
 
-      // Создаем бота с polling
-      console.log('[Telegram Bot] Creating bot instance with polling...');
-      this.bot = new TelegramBot(this.botToken, {
-        polling: {
-          interval: 1000,
-          autoStart: false, // We'll start it manually to ensure it keeps running
-          params: {
-            timeout: 30,
-            allowed_updates: ['message', 'callback_query']
+      if (useWebhookMode) {
+        console.log('[Telegram Bot] Creating bot instance in webhook mode (no polling)');
+        // Do not enable polling; webhook updates will be delivered to /api/telegram/webhook
+        this.bot = new TelegramBot(this.botToken, { polling: false });
+      } else {
+        // Создаем бота с polling
+        console.log('[Telegram Bot] Creating bot instance with polling...');
+        this.bot = new TelegramBot(this.botToken, {
+          polling: {
+            interval: 1000,
+            autoStart: false, // We'll start it manually to ensure it keeps running
+            params: {
+              timeout: 30,
+              allowed_updates: ['message', 'callback_query']
+            }
           }
-        }
-      });
+        });
+      }
 
       // Setup error handlers BEFORE starting polling
       this.bot.on('error', (error: any) => {
@@ -109,12 +119,17 @@ class TelegramService {
       // Настраиваем обработчики
       await this.setupHandlers();
 
-      // Start polling AFTER handlers are set up
-      console.log('[Telegram Bot] Starting polling...');
-      this.bot.startPolling();
-
-      this.pollingStarted = true;
-      console.log('✅ Telegram Bot initialized successfully with polling');
+      // Start polling AFTER handlers are set up (only when not using webhook)
+      if (!useWebhookMode) {
+        console.log('[Telegram Bot] Starting polling...');
+        this.bot.startPolling();
+        this.pollingStarted = true;
+        console.log('✅ Telegram Bot initialized successfully with polling');
+      } else {
+        // In webhook mode we don't start polling; the webhook route will forward updates
+        this.pollingStarted = false;
+        console.log('✅ Telegram Bot initialized in webhook mode (polling disabled)');
+      }
 
       // Keep a reference to prevent garbage collection
       (global as any).__telegramBot = this.bot;
@@ -2435,10 +2450,10 @@ class TelegramService {
   async handleWebhookMessage(message: TelegramBot.Message): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       const chatId = message.chat?.id;
       const userId = message.from?.id;
-      
+
       if (!chatId || !userId) {
         console.warn('[Webhook] Invalid message: missing chatId or userId');
         return;
@@ -2527,7 +2542,7 @@ class TelegramService {
   async handleWebhookCallback(query: TelegramBot.CallbackQuery): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       // Delegate to existing callback query handler
       await this.handleCallbackQuery(query);
     } catch (error: any) {
