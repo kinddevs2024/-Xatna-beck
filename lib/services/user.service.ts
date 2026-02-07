@@ -80,14 +80,29 @@ export class UserService {
   }
 
   async findOne(id: string): Promise<User | null> {
-    const user = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        clientBookings: true,
-        doctorBookings: true,
-      },
-    });
-    return user as User | null;
+    // Validate MongoDB ObjectID format (must be 24 hex characters)
+    if (!id || !/^[0-9a-f]{24}$/i.test(id)) {
+      console.warn(`[UserService] Invalid ObjectID format: "${id}"`);
+      return null;
+    }
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          clientBookings: true,
+          doctorBookings: true,
+        },
+      });
+      return user as User | null;
+    } catch (error: any) {
+      if (error.code === 'P2023') {
+        // Malformed ObjectID error
+        console.warn(`[UserService] Malformed ObjectID: "${id}"`);
+        return null;
+      }
+      throw error;
+    }
   }
 
   async findByTgUsername(tgUsername: string): Promise<User | null> {
