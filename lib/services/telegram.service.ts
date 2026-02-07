@@ -1757,7 +1757,7 @@ class TelegramService {
 
       const booking = await prisma.booking.findFirst({
         where: {
-          id: bookingId,
+          id: bookingId.toString(),
           client_id: user.id
         },
         include: {
@@ -1777,7 +1777,7 @@ class TelegramService {
 
       // Обновляем статус
       await prisma.booking.update({
-        where: { id: bookingId },
+        where: { id: bookingId.toString() },
         data: { status: BookingStatus.CANCELLED }
       });
 
