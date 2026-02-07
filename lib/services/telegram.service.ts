@@ -17,6 +17,13 @@ class TelegramService {
   }
 
   /**
+   * Check if bot is initialized
+   */
+  isInitialized(): boolean {
+    return !!this.bot && this.pollingStarted;
+  }
+
+  /**
    * Ленивая инициализация бота (публичный метод для внешнего вызова)
    */
   async ensureInitialized() {
@@ -70,15 +77,25 @@ class TelegramService {
       this.bot = new TelegramBot(this.botToken, {
         polling: {
           interval: 1000,
-          autoStart: true,
+          autoStart: false, // We'll start it manually to ensure it keeps running
           params: {
-            timeout: 10
+            timeout: 30,
+            allowed_updates: ['message', 'callback_query']
           }
         }
       });
 
+      // Setup error handlers BEFORE starting polling
+      this.bot.on('error', (error: any) => {
+        console.error('[Telegram Bot] Error:', error?.message || error);
+      });
+
+      this.bot.on('polling_error', (error: any) => {
+        console.error('[Telegram Bot] Polling error:', error?.message || error);
+      });
+
       // Даем боту немного времени на инициализацию
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Проверяем, что бот действительно работает
       try {
@@ -92,8 +109,15 @@ class TelegramService {
       // Настраиваем обработчики
       await this.setupHandlers();
 
+      // Start polling AFTER handlers are set up
+      console.log('[Telegram Bot] Starting polling...');
+      this.bot.startPolling();
+      
       this.pollingStarted = true;
       console.log('✅ Telegram Bot initialized successfully with polling');
+      
+      // Keep a reference to prevent garbage collection
+      (global as any).__telegramBot = this.bot;
     } catch (error: any) {
       console.error('❌ Error initializing Telegram Bot:', error?.message || error);
       console.error('[Telegram Bot] Full error:', error);

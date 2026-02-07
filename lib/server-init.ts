@@ -10,19 +10,25 @@ let serverInitialized = false;
 
 export async function initializeServer() {
   if (serverInitialized) return;
-  
+
   try {
     // Validate environment variables
     validateEnv();
-    
-    // Инициализируем базу данных
-    await initializeDatabase();
-    
+
+    // Инициализируем базу данных (с встроенной обработкой ошибок)
+    try {
+      await initializeDatabase();
+    } catch (dbError: any) {
+      console.warn('[Server Init] ⚠️ Database initialization warning:', dbError?.message || dbError);
+      // Продолжаем, даже если инициализация базы данных не удалась
+      // Реальные запросы к БД могут работать
+    }
+
     // Инициализируем Telegram бота (принудительно)
     if (process.env.BOT_TOKEN && process.env.BOT_TOKEN.trim() !== '') {
       console.log('[Server Init] 🔄 Initializing Telegram Bot...');
       await telegramService.ensureInitialized();
-      
+
       // Проверяем статус
       const isInitialized = telegramService.isInitialized();
       if (isInitialized) {
@@ -33,18 +39,27 @@ export async function initializeServer() {
     } else {
       console.warn('[Server Init] ⚠️ BOT_TOKEN not configured');
     }
-    
+
     serverInitialized = true;
     console.log('[Server Init] ✅ Server initialized successfully');
   } catch (error: any) {
     console.error('[Server Init] ❌ Server initialization error:', error?.message || error);
+    // Не бросаем ошибку, позволяем серверу продолжать работу
   }
 }
 
 // Автоматически инициализируем Telegram бота при импорте (если не в Edge Runtime)
 if (typeof process !== 'undefined' && process.env && !process.env.NEXT_RUNTIME) {
   // Небольшая задержка для запуска сервера
-  setTimeout(() => {
-    autoInitializeTelegramBot().catch(console.error);
-  }, 1000);
+  const initializeBot = async () => {
+    try {
+      await new Promise(r => setTimeout(r, 500));
+      console.log('[Server Init] 🤖 Auto-initializing Telegram Bot...');
+      await autoInitializeTelegramBot();
+    } catch (err: any) {
+      console.error('[Server Init] ⚠️ Auto-init failed:', err?.message);
+    }
+  };
+  
+  initializeBot();
 }
