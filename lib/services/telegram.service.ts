@@ -2430,6 +2430,112 @@ class TelegramService {
   }
 
   /**
+   * Webhook handler for regular messages
+   */
+  async handleWebhookMessage(message: TelegramBot.Message): Promise<void> {
+    try {
+      await this.ensureInitialized();
+      
+      const chatId = message.chat?.id;
+      const userId = message.from?.id;
+      
+      if (!chatId || !userId) {
+        console.warn('[Webhook] Invalid message: missing chatId or userId');
+        return;
+      }
+
+      console.log(`[Webhook] Received message: userId=${userId}, chatId=${chatId}, text="${message.text?.substring(0, 50) || 'no text'}..."`);
+
+      // Handle contact sharing
+      if (message.contact && userId) {
+        const phoneNumber = message.contact.phone_number;
+        let formattedPhone = phoneNumber;
+        if (!formattedPhone.startsWith('+')) {
+          formattedPhone = '+' + formattedPhone;
+        }
+
+        let user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { tg_id: String(userId) },
+              { tg_username: message.from?.username },
+            ],
+          },
+        });
+
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              tg_id: String(userId),
+              tg_username: message.from?.username,
+              role: UserRole.CLIENT,
+              name: message.from?.first_name || 'Foydalanuvchi',
+              phone_number: formattedPhone,
+            },
+          });
+        } else {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              phone_number: formattedPhone,
+              tg_id: String(userId),
+            },
+          });
+        }
+
+        this.userStates.delete(userId);
+
+        const updatedUser = await prisma.user.findUnique({
+          where: { id: user.id }
+        });
+
+        if (this.bot && updatedUser) {
+          await this.bot.sendMessage(
+            chatId,
+            `✅ *Ro'yxatdan o'tdingiz!*\n\n📱 Telefon: ${formattedPhone}\n\nSiz bosh sahifadasiz.`,
+            { parse_mode: 'Markdown' }
+          );
+          await this.showHomePage(chatId, updatedUser);
+        }
+        return;
+      }
+
+      // Handle text messages based on user state
+      if (userId) {
+        const state = this.userStates.get(userId);
+        if (state && message) {
+          await this.handleStateMessage(message, state);
+          return;
+        }
+      }
+
+      // If no handler matched, send default response
+      if (this.bot) {
+        await this.bot.sendMessage(
+          chatId,
+          '🤔 Tushunmadim. Yordam uchun /help buyrug\'ini yuboring.',
+        );
+      }
+    } catch (error: any) {
+      console.error('[Telegram Bot] Error in handleWebhookMessage:', error?.message || error);
+    }
+  }
+
+  /**
+   * Webhook handler for callback queries
+   */
+  async handleWebhookCallback(query: TelegramBot.CallbackQuery): Promise<void> {
+    try {
+      await this.ensureInitialized();
+      
+      // Delegate to existing callback query handler
+      await this.handleCallbackQuery(query);
+    } catch (error: any) {
+      console.error('[Telegram Bot] Error in handleWebhookCallback:', error?.message || error);
+    }
+  }
+
+  /**
    * Остановить polling
    */
   async stopPolling(): Promise<void> {
