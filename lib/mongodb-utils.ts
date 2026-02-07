@@ -10,9 +10,9 @@
  * @returns true if valid ObjectID format
  */
 export function isValidObjectId(id: string | number | unknown): boolean {
-  if (!id) return false;
-  if (typeof id !== 'string') return false;
-  return /^[0-9a-f]{24}$/i.test(id);
+    if (!id) return false;
+    if (typeof id !== 'string') return false;
+    return /^[0-9a-f]{24}$/i.test(id);
 }
 
 /**
@@ -24,14 +24,14 @@ export function isValidObjectId(id: string | number | unknown): boolean {
  * @returns Validated ID string or null if invalid
  */
 export function validateAndConvertId(id: string | number | unknown, context: string = 'id'): string | null {
-  const strId = String(id).trim();
-  
-  if (!isValidObjectId(strId)) {
-    console.warn(`[ObjectID Validation] Invalid ${context}: "${strId}" is not a valid MongoDB ObjectID`);
-    return null;
-  }
-  
-  return strId;
+    const strId = String(id).trim();
+
+    if (!isValidObjectId(strId)) {
+        console.warn(`[ObjectID Validation] Invalid ${context}: "${strId}" is not a valid MongoDB ObjectID`);
+        return null;
+    }
+
+    return strId;
 }
 
 /**
@@ -42,9 +42,9 @@ export function validateAndConvertId(id: string | number | unknown, context: str
  * @returns Array of valid IDs only
  */
 export function validateAndConvertIds(ids: (string | number)[], context: string = 'ids'): string[] {
-  return ids
-    .map(id => validateAndConvertId(id, context))
-    .filter((id): id is string => id !== null);
+    return ids
+        .map(id => validateAndConvertId(id, context))
+        .filter((id): id is string => id !== null);
 }
 
 /**

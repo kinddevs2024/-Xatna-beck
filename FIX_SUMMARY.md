@@ -5,6 +5,7 @@
 ### 1. **Malformed ObjectID Error** ✅ FIXED
 
 **Problem:**
+
 ```
 Malformed ObjectID: provided hex string representation must be exactly 12 bytes, instead got: "1", length 1.
 ```
@@ -12,12 +13,14 @@ Malformed ObjectID: provided hex string representation must be exactly 12 bytes,
 **Root Cause:** Code was passing simple integers (like `1`) to Prisma where MongoDB expects 24-character hex ObjectIDs.
 
 **Fix Applied:**
+
 - Updated `lib/services/user.service.ts` → `findOne()` method
 - Added ObjectID format validation using regex: `/^[0-9a-f]{24}$/i`
 - Invalid IDs now return `null` gracefully instead of throwing errors
 - Added try-catch for Prisma P2023 errors
 
 **Code:**
+
 ```typescript
 async findOne(id: string): Promise<User | null> {
   // Validate MongoDB ObjectID format (must be 24 hex characters)
@@ -43,20 +46,24 @@ async findOne(id: string): Promise<User | null> {
 ### 2. **MongoDB Authentication Issues** 🔧 GUIDE PROVIDED
 
 **Problem:**
+
 ```
 SCRAM failure: bad auth : authentication failed
 ```
 
 **Root Causes:**
+
 - Missing `authSource=admin` in connection string
 - MongoDB Atlas Network Access not configured for Vercel IPs
 - Credentials incorrect or user not found
 
 **Solutions Provided:**
+
 1. **See:** `MONGODB_ATLAS_SETUP.md` - Complete step-by-step guide
 2. **See:** `VERCEL_DEPLOYMENT_GUIDE.md` - Vercel-specific setup
 
 **Quick Fixes:**
+
 ```
 ✅ In MongoDB Atlas:
    1. Security → Network Access → Allow From Any Where (0.0.0.0/0)
@@ -75,17 +82,20 @@ SCRAM failure: bad auth : authentication failed
 ### 3. **Telegram Bot Not Working on Vercel** 🤖 GUIDE PROVIDED
 
 **Problem:**
+
 - Polling doesn't survive serverless function termination
 - Bot connects but stops listening after request ends
 
 **Solutions Provided:**
 
 **Option A: Webhooks (Recommended)**
+
 - See: `VERCEL_DEPLOYMENT_GUIDE.md` → Section "Telegram Bot on Vercel/Serverless"
 - Telegrams sends updates to your webhook URL
 - Works perfectly with serverless
 
 **Option B: Keep-Alive Polling (Quick Fix)**
+
 - Use cron job to call `/api/telegram/status` every 5 minutes
 - See: `keep-bot-alive.js` for local testing
 - Vercel Crons example in deployment guide
@@ -118,7 +128,7 @@ SCRAM failure: bad auth : authentication failed
 
 ## 🔧 Code Changes
 
-### Modified Files:
+### Modified Files
 
 1. **`lib/services/user.service.ts`**
    - Enhanced `findOne()` with ObjectID validation
@@ -129,9 +139,10 @@ SCRAM failure: bad auth : authentication failed
 
 ## 🚀 What to Do Next
 
-### Immediate Actions:
+### Immediate Actions
 
 1. **Update MongoDB Atlas** (5 minutes)
+
    ```
    Follow: MONGODB_ATLAS_SETUP.md
    - Set Network Access to 0.0.0.0/0
@@ -139,6 +150,7 @@ SCRAM failure: bad auth : authentication failed
    ```
 
 2. **Update Vercel Environment Variables** (2 minutes)
+
    ```
    DATABASE_URL with ?authSource=admin
    BOT_TOKEN (if using polling)
@@ -146,12 +158,14 @@ SCRAM failure: bad auth : authentication failed
    ```
 
 3. **Choose Telegram Solution** (pick one)
+
    ```
    ☐ Webhooks (recommended) - see Deployment Guide
    ☐ Keep-Alive Polling - easier setup
    ```
 
 4. **Test Deployment** (5 minutes)
+
    ```
    npm run build        # Test locally
    git push origin main # Deploy to Vercel
@@ -196,16 +210,20 @@ After deployment:
 
 ## 🆘 If You Still Have Issues
 
-### MongoDB errors:
+### MongoDB errors
+
 → See: `MONGODB_ATLAS_SETUP.md`
 
-### Vercel/Deployment errors:
+### Vercel/Deployment errors
+
 → See: `VERCEL_DEPLOYMENT_GUIDE.md`
 
-### Telegram bot issues:
+### Telegram bot issues
+
 → See: `TELEGRAM_BOT_SETUP.md` or `VERCEL_DEPLOYMENT_GUIDE.md`
 
-### ObjectID errors:
+### ObjectID errors
+
 → **Already fixed!** Update your code and rebuild
 
 ---

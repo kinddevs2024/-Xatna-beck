@@ -10,13 +10,15 @@
 2. Click **Add IP Address**
 
 **Option A: Allow Vercel (Recommended for Testing)**
+
 - Click **ALLOW FROM ANY WHERE**
 - Select **0.0.0.0/0** (allows all IPs)
 - ⚠️ This is safe because your database is protected by strong credentials
 - Confirm
 
 **Option B: Whitelist Specific IPs (Production)**
-- Get Vercel's IP addresses: https://vercel.com/docs/concepts/edge-network/edge-middleware#vercel-owned-ips
+
+- Get Vercel's IP addresses: <https://vercel.com/docs/concepts/edge-network/edge-middleware#vercel-owned-ips>
 - Add each IP individually
 - More secure but requires periodic updates
 
@@ -61,6 +63,7 @@ DATABASE_URL=mongodb+srv://uploadhorizon_db_user:MbQ7xEgCCONqBjue@cluster0.vnygk
 ```
 
 **Breaking it down:**
+
 - `uploadhorizon_db_user:MbQ7xEgCCONqBjue` = Your credentials
 - `cluster0.vnygklb.mongodb.net` = Your cluster address
 - `Xatnan1` = Your database name
@@ -74,9 +77,11 @@ DATABASE_URL=mongodb+srv://uploadhorizon_db_user:MbQ7xEgCCONqBjue@cluster0.vnygk
 
 1. Go to **Settings** → **Environment Variables**
 2. Add:
+
    ```
    DATABASE_URL=mongodb+srv://uploadhorizon_db_user:MbQ7xEgCCONqBjue@cluster0.vnygklb.mongodb.net/Xatnan1?retryWrites=true&w=majority&authSource=admin
    ```
+
 3. ⚠️ **Do NOT include quotes!**
 4. Select environments: Production, Preview, Development
 5. Click **Save**
@@ -95,6 +100,7 @@ curl https://your-vercel-domain.com/api/users
 **Success:** Returns list of users or auth error (not database error)
 
 **Failure:** Check error message:
+
 - `SCRAM failure` → Wrong credentials or authSource missing
 - `Malformed ObjectID` → ✅ Fixed by us (update code)
 - `Connection timeout` → IP not whitelisted in Network Access
@@ -104,18 +110,21 @@ curl https://your-vercel-domain.com/api/users
 ## 🔍 Verify Configuration
 
 ### Check Network Access
+
 ```bash
 # MongoDB Atlas → Security → Network Access
 # Should show: 0.0.0.0/0 (all) or specific IPs
 ```
 
 ### Check Database User
+
 ```bash
 # MongoDB Atlas → Security → Database Access
 # Should show: uploadhorizon_db_user with "Read and write to any database"
 ```
 
 ### Check Connection String Format
+
 ```
 mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/DATABASE?authSource=admin&retryWrites=true&w=majority
 ```

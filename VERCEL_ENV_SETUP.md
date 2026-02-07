@@ -40,7 +40,7 @@ NODE_ENV=production
    - Check MongoDB credentials match exactly
 
 2. **BOT_TOKEN:**
-   - Get from: https://t.me/botfather
+   - Get from: <https://t.me/botfather>
    - Or use existing: `8122262826:AAH98Mm3FLADPWoKqpFsMYUSoyAVpYmCh0M`
 
 3. **FRONTEND_URL:**

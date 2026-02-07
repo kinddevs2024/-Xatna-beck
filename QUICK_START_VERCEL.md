@@ -11,7 +11,7 @@
 
 ## 📋 Step 1: Fix MongoDB Atlas (5 minutes)
 
-### In MongoDB Atlas Dashboard:
+### In MongoDB Atlas Dashboard
 
 1. **Click Network Access** (in left menu)
 2. **Click "Add IP Address"** button
@@ -24,7 +24,7 @@
 
 ## 📋 Step 2: Set Vercel Environment Variables (3 minutes)
 
-### In Vercel Dashboard:
+### In Vercel Dashboard
 
 1. Go to your project **Settings** → **Environment Variables**
 2. **Copy & Paste** these variables (one at a time):
@@ -49,7 +49,7 @@ FRONTEND_URL=https://YOUR_VERCEL_DOMAIN.COM
 NODE_ENV=production
 ```
 
-3. For each one:
+1. For each one:
    - **Select all 3 environments:** Production, Preview, Development
    - **Click Save**
 
@@ -61,14 +61,14 @@ NODE_ENV=production
 
 ## 📋 Step 3: Deploy & Test (2 minutes)
 
-### In Vercel:
+### In Vercel
 
 1. Go to **Deployments**
 2. Find your latest deployment
 3. Click **Redeploy**
 4. Wait for build to finish (3-5 minutes)
 
-### Test your app:
+### Test your app
 
 ```bash
 # Test database connection
@@ -82,6 +82,7 @@ curl -X POST https://YOUR_VERCEL_DOMAIN.COM/api/init
 ```
 
 Expected responses:
+
 - ✅ User list (or 401 auth error) = Database working!
 - ✅ Bot status = Telegram working!
 - ✅ Message response = Init working!
@@ -90,13 +91,15 @@ Expected responses:
 
 ---
 
-## 🤖 Telegram Bot - Choose One:
+## 🤖 Telegram Bot - Choose One
 
 ### Option A: Webhooks (Recommended)
+
 - Read: `VERCEL_DEPLOYMENT_GUIDE.md` → Telegram Bot section
 - Most reliable for serverless
 
 ### Option B: Keep Polling (Easy)
+
 - Already configured
 - Bot will respond as-is
 - Works fine for testing
@@ -123,6 +126,7 @@ curl https://YOUR_VERCEL_DOMAIN.COM/api/telegram/status && echo "\n" && curl htt
 ```
 
 Expected output:
+
 ```json
 {
   "status": "active",

@@ -18,7 +18,7 @@
 
 In MongoDB Atlas:
 
-1. **Go to Network Access** → `Allow From Any Where (0.0.0.0/0)` 
+1. **Go to Network Access** → `Allow From Any Where (0.0.0.0/0)`
    - ⚠️ **Only for development/testing!**
    - For production, add specific Vercel egress IPs
 
@@ -36,6 +36,7 @@ DATABASE_URL=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/dbname?r
 ```
 
 **Critical components:**
+
 - ✅ `username:password` - URL-encoded credentials (use your actual MongoDB username/password)
 - ✅ `authSource=admin` - Specifies authentication database
 - ✅ `retryWrites=true` - Handles connection issues
@@ -57,6 +58,7 @@ If you see `✅ Connection verified`, you're good!
 ### The Problem
 
 Polling **does NOT work** on serverless platforms because:
+
 - Function executes, then terminates
 - Polling connection is lost
 - Bot stops listening
@@ -65,7 +67,7 @@ Polling **does NOT work** on serverless platforms because:
 
 Webhooks are best for serverless.
 
-#### Setup:
+#### Setup
 
 1. **Remove polling from telegram.service.ts**
    - Delete: `this.bot.startPolling();`
@@ -111,11 +113,13 @@ Webhooks are best for serverless.
 If webhooks are complex, use periodic pings:
 
 1. **Set up cron job** to call status endpoint every 5 minutes:
+
    ```
    GET https://your-domain.com/api/telegram/status
    ```
 
 2. **Or use a service** like EasyCron or Vercel Cron:
+
    ```json
    // vercel.json
    {
@@ -180,23 +184,27 @@ NODE_ENV=production
 ## 📱 Testing After Deployment
 
 ### 1. Test Database
+
 ```bash
 curl https://your-domain.com/api/users
 # Should return users or auth error (not DB error)
 ```
 
 ### 2. Test Server Init
+
 ```bash
 curl -X POST https://your-domain.com/api/init
 # Should return success
 ```
 
 ### 3. Test Telegram Status
+
 ```bash
 curl https://your-domain.com/api/telegram/status
 ```
 
 ### 4. Test Telegram Bot
+
 - Send `/start` to your bot on Telegram
 - Should respond with greeting
 

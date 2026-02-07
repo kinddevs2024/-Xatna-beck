@@ -153,7 +153,7 @@ export class UserService {
     ];
 
     const updateData: any = {};
-    
+
     for (const field of allowedFields) {
       if (field in data && data[field] !== undefined) {
         updateData[field] = data[field];
