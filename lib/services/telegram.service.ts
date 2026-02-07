@@ -2430,13 +2430,6 @@ class TelegramService {
   }
 
   /**
-   * Проверить, инициализирован ли бот
-   */
-  isInitialized(): boolean {
-    return this.bot !== null && this.pollingStarted;
-  }
-
-  /**
    * Остановить polling
    */
   async stopPolling(): Promise<void> {
