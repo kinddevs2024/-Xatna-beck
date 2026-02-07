@@ -11,6 +11,7 @@ Your application includes a Telegram bot that listens for messages and commands.
 The Telegram bot will automatically start when your server starts if `BOT_TOKEN` is configured.
 
 #### Manual Start
+
 ```bash
 # Start your Next.js server
 npm run dev
@@ -27,16 +28,19 @@ curl http://localhost:3000/api/telegram/status
 If the bot is not responding:
 
 1. **Verify BOT_TOKEN in `.env`**
+
    ```
    BOT_TOKEN=8303863252:AAH98Mm3FLADPWoKqpFsMYUSoyAVpYmCh0M
    ```
 
 2. **Check bot status**
+
    ```bash
    curl http://localhost:3000/api/telegram/status
    ```
 
 3. **Verify bot token is valid**
+
    ```bash
    curl https://api.telegram.org/bot8303863252:AAH98Mm3FLADPWoKqpFsMYUSoyAVpYmCh0M/getMe
    ```
@@ -50,17 +54,20 @@ If the bot is not responding:
 If deploying to Vercel or other serverless platforms:
 
 1. **Ensure BOT_TOKEN is set in environment variables**
+
    ```
    BOT_TOKEN=your_bot_token_here
    ```
 
 2. **Call the startup endpoint when your app starts**
+
    ```bash
    # Add this as a post-deployment command or in your app initialization
    curl https://your-domain.com/api/telegram/start
    ```
 
 3. **Keep the bot alive with periodic calls** (recommended)
+
    ```bash
    # Add a cron job or periodic task to call:
    curl https://your-domain.com/api/telegram/status
@@ -71,6 +78,7 @@ If deploying to Vercel or other serverless platforms:
 Webhooks are more reliable and efficient than polling:
 
 1. **Enable webhooks in your Telegram bot settings**
+
    ```bash
    curl -X POST https://api.telegram.org/botYOUR_BOT_TOKEN/setWebhook \
      -d "url=https://your-domain.com/api/telegram/webhook"
@@ -147,6 +155,7 @@ Edit `lib/services/telegram.service.ts` to:
 ## Security Notes
 
 ⚠️ **Important:**
+
 - Never commit `.env` with real BOT_TOKEN to Git
 - Keep BOT_TOKEN private - it controls your bot
 - Validate all user input from Telegram

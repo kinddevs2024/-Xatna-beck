@@ -11,17 +11,17 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Init Route] 🚀 Initializing server...');
     await initializeServer();
-    
+
     // Ensure Telegram bot is running
     if (process.env.BOT_TOKEN && process.env.BOT_TOKEN.trim() !== '') {
       console.log('[Init Route] 🤖 Ensuring Telegram bot is running...');
       await telegramService.ensureInitialized();
     }
-    
+
     const botStatus = telegramService.isInitialized();
-    
+
     return NextResponse.json(
-      { 
+      {
         message: 'Server initialized successfully',
         telegramBot: {
           status: botStatus ? 'running' : 'not_running',

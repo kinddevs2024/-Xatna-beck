@@ -112,10 +112,10 @@ class TelegramService {
       // Start polling AFTER handlers are set up
       console.log('[Telegram Bot] Starting polling...');
       this.bot.startPolling();
-      
+
       this.pollingStarted = true;
       console.log('✅ Telegram Bot initialized successfully with polling');
-      
+
       // Keep a reference to prevent garbage collection
       (global as any).__telegramBot = this.bot;
     } catch (error: any) {
@@ -210,9 +210,9 @@ class TelegramService {
         await this.ensureInitialized();
         const userId = msg.from?.id;
         const chatId = msg.chat.id;
-        
+
         console.log(`[Message] Received: userId=${userId}, chatId=${chatId}, text="${msg.text?.substring(0, 50)}..."`);
-        
+
         // Игнорируем команды (они обрабатываются отдельно)
         if (msg.text?.startsWith('/')) {
           console.log(`[Message] Ignoring command: ${msg.text}`);
@@ -353,7 +353,7 @@ class TelegramService {
       const message = error?.message || String(error);
       if (message.includes('ETELEGRAM: 409 Conflict')) {
         console.error('[Telegram Bot] Polling conflict detected. Stopping polling for this instance.');
-        this.stopPolling().catch(() => {});
+        this.stopPolling().catch(() => { });
         return;
       }
       console.error('[Telegram Bot] Polling error:', {
@@ -417,7 +417,7 @@ class TelegramService {
    */
   private async showHomePage(chatId: number, user: any) {
     console.log(`[showHomePage] Showing home page for user ${user.id}, name=${user.name}, phone=${user.phone_number}`);
-    
+
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
@@ -1847,7 +1847,7 @@ class TelegramService {
     const userId = msg.from?.id;
 
     if (!userId) return;
-    
+
     console.log(`[handleStateMessage] Processing action=${state.action}, step=${state.step}, userId=${userId}`);
 
     try {

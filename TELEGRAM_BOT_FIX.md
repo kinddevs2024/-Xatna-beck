@@ -11,25 +11,29 @@ Your Telegram bot was **not staying actively listening** for messages because:
 ## 🔧 Fixes Applied
 
 ### 1. **Improved Telegram Service** (`lib/services/telegram.service.ts`)
-   - ✅ Added `isInitialized()` method to check bot status
-   - ✅ Changed polling to manual start (not autoStart) for better control
-   - ✅ Added error handlers BEFORE starting polling
-   - ✅ Added global reference to prevent garbage collection
-   - ✅ Better startup sequencing
+
+- ✅ Added `isInitialized()` method to check bot status
+- ✅ Changed polling to manual start (not autoStart) for better control
+- ✅ Added error handlers BEFORE starting polling
+- ✅ Added global reference to prevent garbage collection
+- ✅ Better startup sequencing
 
 ### 2. **New API Endpoints**
-   - ✅ `GET /api/telegram/start` - Manually start/ensure bot is running
-   - ✅ `GET /api/telegram/status` - Check if bot is active
-   - ✅ Updated `POST /api/init` - Now starts the bot automatically
+
+- ✅ `GET /api/telegram/start` - Manually start/ensure bot is running
+- ✅ `GET /api/telegram/status` - Check if bot is active
+- ✅ Updated `POST /api/init` - Now starts the bot automatically
 
 ### 3. **Helper Scripts**
-   - ✅ `test-telegram-bot.js` - Verify bot configuration
-   - ✅ `keep-bot-alive.js` - Keep bot running with periodic pings
-   - ✅ `TELEGRAM_BOT_SETUP.md` - Complete setup guide
+
+- ✅ `test-telegram-bot.js` - Verify bot configuration
+- ✅ `keep-bot-alive.js` - Keep bot running with periodic pings
+- ✅ `TELEGRAM_BOT_SETUP.md` - Complete setup guide
 
 ### 4. **Auto-Initialization**
-   - ✅ Server now automatically initializes the bot on startup
-   - ✅ Better error handling and logging
+
+- ✅ Server now automatically initializes the bot on startup
+- ✅ Better error handling and logging
 
 ## 🚀 How to Use
 
@@ -75,7 +79,8 @@ curl http://localhost:3000/api/telegram/start
 
 ## 🔄 Production Deployment (Vercel/Railway)
 
-### For Vercel:
+### For Vercel
+
 ```bash
 # 1. Set BOT_TOKEN in Vercel environment variables
 # 2. Add deploy hook or cron job to call:
@@ -84,6 +89,7 @@ curl https://your-domain.com/api/telegram/status
 ```
 
 ### Alternative: Webhooks (Recommended)
+
 ```bash
 curl -X POST https://api.telegram.org/botYOUR_TOKEN/setWebhook \
   -d "url=https://your-domain.com/api/telegram/webhook"
@@ -102,10 +108,12 @@ curl -X POST https://api.telegram.org/botYOUR_TOKEN/setWebhook \
 ## 🆘 If Bot Still Doesn't Respond
 
 1. **Check logs**: Look for `[Telegram Bot]` messages in server output
-2. **Verify token**: 
+2. **Verify token**:
+
    ```bash
    curl https://api.telegram.org/bot8303863252:AAH98Mm3FLADPWoKqpFsMYUSoyAVpYmCh0M/getMe
    ```
+
 3. **Check status**: `node test-telegram-bot.js`
 4. **Restart server**: `npm run dev`
 5. **Read guide**: `TELEGRAM_BOT_SETUP.md`

@@ -60,6 +60,6 @@ if (typeof process !== 'undefined' && process.env && !process.env.NEXT_RUNTIME) 
       console.error('[Server Init] ⚠️ Auto-init failed:', err?.message);
     }
   };
-  
+
   initializeBot();
 }

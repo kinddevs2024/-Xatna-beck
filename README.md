@@ -30,6 +30,7 @@ npm install
    - `FRONTEND_URL` - URL фронтенда (по умолчанию: `https://xatna-markasi-n1.uz`)
 
 3. Инициализируйте базу данных:
+
 ```bash
 # Сгенерировать Prisma Client
 npm run db:generate
@@ -55,6 +56,7 @@ npm run start
 ## API Endpoints
 
 ### Бронирование
+
 - `POST /api/bookings` - Создать бронирование (публичный)
   - Принимает: `phone_number`, `barber_id` (или `doctor_id`), `service_ids` (игнорируется), `date`, `time`, `client_name`
   - Каждое бронирование длится 30 минут (фиксировано)
@@ -71,6 +73,7 @@ npm run start
 - `GET /api/bookings/comments` - Получить все бронирования с комментариями
 
 ### Пользователи
+
 - `GET /api/users` - Получить всех пользователей (только админ)
 - `GET /api/users/:id` - Получить пользователя по ID
 - `PATCH /api/users/:id/role` - Изменить роль пользователя (только админ)
@@ -78,6 +81,7 @@ npm run start
 - `GET /api/users/barbers` - Получить всех докторов (для совместимости с фронтендом)
 
 ### Доктор (Doctor)
+
 - `GET /api/doctor` - Получить информацию о default докторе (публичный)
 - `POST /api/doctor` - Создать доктора (только админ)
 - `PATCH /api/doctor/:id` - Обновить доктора (только админ или сам доктор)
@@ -86,15 +90,18 @@ npm run start
 - `PATCH /api/barber/:id` - Alias для /api/doctor/:id (совместимость)
 
 ### Админ (Admin)
+
 - `POST /api/admin` - Создать админа (только SUPER_ADMIN)
 - `PATCH /api/admin/:id` - Обновить админа (только SUPER_ADMIN)
 
 ### Аутентификация
+
 - `POST /api/auth/login` - Вход (только для админов)
   - Принимает: `tg_username`, `password`
   - Возвращает: `{ token, user }`
 
 ### Инициализация
+
 - `POST /api/init` - Инициализировать базу данных (создать SUPER_ADMIN и DOCTOR)
 
 ## Структура проекта
@@ -125,6 +132,7 @@ types/
 ## База данных
 
 Проект использует PostgreSQL с Prisma ORM. При первом запуске автоматически создается:
+
 - SUPER_ADMIN пользователь
 - Default DOCTOR пользователь
 
@@ -144,6 +152,7 @@ CORS настроен для работы с этим доменом в `next.co
 ## Примеры запросов
 
 ### Создать бронирование
+
 ```bash
 curl -X POST http://localhost:3000/api/bookings \
   -H "Content-Type: application/json" \
@@ -158,6 +167,7 @@ curl -X POST http://localhost:3000/api/bookings \
 ```
 
 ### Войти
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -168,12 +178,14 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 
 ### Получить все бронирования
+
 ```bash
 curl -X GET http://localhost:3000/api/bookings \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Изменить статус бронирования
+
 ```bash
 curl -X PATCH http://localhost:3000/api/bookings/1/status \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -199,11 +211,12 @@ curl -X PATCH http://localhost:3000/api/bookings/1/status \
 ### Настройка
 
 1. Добавьте `BOT_TOKEN` в `.env`:
+
 ```env
 BOT_TOKEN=your_bot_token_from_botfather
 ```
 
-2. Bot автоматически запустится при старте сервера
+1. Bot автоматически запустится при старте сервера
 
 ### Использование
 
@@ -234,4 +247,3 @@ curl -X POST http://localhost:3000/api/init
 - **TELEGRAM_BOT_FIX.md** - Описание исправлений по бот-тасту
 
 Для продакшена рекомендуется использовать webhooks вместо polling. Подробности см. в `TELEGRAM_BOT_SETUP.md`.
-
