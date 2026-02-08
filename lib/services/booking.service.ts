@@ -24,7 +24,7 @@ export class BookingService {
     if (createBookingDto.doctor_id) {
       try {
         const specifiedDoctor = await this.userService.findOne(createBookingDto.doctor_id);
-        
+
         // Проверяем, что доктор найден и имеет правильную роль
         if (specifiedDoctor) {
           const doctorRole = String(specifiedDoctor.role).toUpperCase();
@@ -43,18 +43,18 @@ export class BookingService {
         // Продолжаем с default доктором
       }
     }
-    
+
     if (!doctor) {
       throw new Error('Doktor topilmadi. Iltimos, avval doktor yarating.');
     }
-    
+
     // Проверяем, что доктор действительно имеет роль DOCTOR
     const doctorRole = String(doctor.role).toUpperCase();
     if (doctorRole !== UserRole.DOCTOR && doctorRole !== 'DOCTOR') {
       console.error(`[BookingService] Default doctor has wrong role: ${doctor.role}, expected DOCTOR`);
       throw new Error('Doktor roli noto\'g\'ri. Iltimos, doktor yarating.');
     }
-    
+
     console.log(`[BookingService] Using doctor: ID=${doctor.id}, Name=${doctor.name}, Role=${doctor.role}`);
 
     // Проверить доступность слота (30 минут)
@@ -72,28 +72,28 @@ export class BookingService {
       const selectedDate = new Date(date);
       selectedDate.setHours(0, 0, 0, 0);
       const isToday = selectedDate.getTime() === today.getTime();
-      
+
       if (selectedDate < today) {
         throw new Error('O\'tgan sanani tanlash mumkin emas');
       }
-      
+
       if (isToday) {
         const now = new Date();
         const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
         const [hours, minutes] = time.split(':').map(Number);
         const slotTimeMinutes = hours * 60 + minutes;
-        
+
         if (slotTimeMinutes <= currentTimeMinutes) {
           throw new Error('O\'tgan vaqtni tanlash mumkin emas');
         }
       }
-      
+
       throw new Error('Tanlangan vaqt allaqachon band. Boshqa vaqtni tanlang');
     }
 
     // Найти или создать клиента
     let client;
-    
+
     // Если client_id указан явно (например, из Telegram бота), используем его
     if (client_id) {
       client = await this.userService.findOne(client_id);
@@ -440,7 +440,7 @@ export class BookingService {
 
     // Группировка по докторам
     const doctorStatsMap = new Map<string, {
-      barber: any;
+      doctor: any;
       bookings: any[];
     }>();
 
@@ -449,7 +449,7 @@ export class BookingService {
 
       if (!doctorStatsMap.has(booking.doctor_id)) {
         doctorStatsMap.set(booking.doctor_id, {
-          barber: {
+          doctor: {
             id: booking.doctor.id,
             name: booking.doctor.name || 'N/A',
           },
@@ -458,7 +458,7 @@ export class BookingService {
       }
 
       const doctorStat = doctorStatsMap.get(booking.doctor_id)!;
-      
+
       // Создаем объект бронирования с фиктивной услугой (30 минут)
       const bookingWithService = {
         id: booking.id,
@@ -483,7 +483,7 @@ export class BookingService {
     });
 
     // Преобразуем Map в массив
-    const barberStatistics = Array.from(doctorStatsMap.values());
+    const doctorStatistics = Array.from(doctorStatsMap.values());
 
     return {
       period: {
@@ -495,7 +495,7 @@ export class BookingService {
         total_bookings: totalBookings,
         bookings_by_status: bookingsByStatus,
       },
-      barber_statistics: barberStatistics,
+      doctor_statistics: doctorStatistics,
     };
   }
 }

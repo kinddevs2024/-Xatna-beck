@@ -50,7 +50,7 @@ export async function PATCH(
       }
       body = JSON.parse(text);
     } catch (parseError: any) {
-      console.error('Error parsing JSON in PATCH /barber/[id]:', parseError);
+      console.error('Error parsing JSON in PATCH /doctor/[id]:', parseError);
       return createErrorResponse('Noto\'g\'ri JSON format', 400, request);
     }
 

@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
 
   // Обработка CORS для всех API запросов
   const origin = request.headers.get('origin');
-  
+
   // В development разрешаем ЛЮБОЙ origin (полностью отключаем CORS проверки)
   let allowedOrigin: string;
   if (process.env.NODE_ENV === 'development') {
@@ -28,13 +28,13 @@ export function middleware(request: NextRequest) {
   } else {
     // В production используем whitelist
     const isAllowedOrigin = origin && (
-      allowedOrigins.includes(origin) || 
-      origin.includes('localhost') || 
+      allowedOrigins.includes(origin) ||
+      origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
       origin.includes('vercel.app')
     );
-    allowedOrigin = (isAllowedOrigin && origin) 
-      ? origin 
+    allowedOrigin = (isAllowedOrigin && origin)
+      ? origin
       : (process.env.FRONTEND_URL || 'https://xatna-front.vercel.app');
   }
 
@@ -54,7 +54,7 @@ export function middleware(request: NextRequest) {
 
   // Для остальных запросов добавляем CORS headers
   const response = NextResponse.next();
-  
+
   response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
   response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
@@ -70,9 +70,9 @@ export const config = {
     '/auth/:path*',
     '/users/:path*',
     '/admin/:path*',
-    '/barber/:path*',
+    '/doctor/:path*',
     '/bookings/:path*',
-    '/barber-services/:path*',
+    '/doctor-services/:path*',
     '/service-categories/:path*',
     '/doctor/:path*',
     '/client/:path*',

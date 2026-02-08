@@ -5,11 +5,11 @@ import { handleOptions } from '@/lib/cors';
 import { CreateBookingDto, UserRole } from '@/types';
 import { z } from 'zod';
 
-// Schema for frontend compatibility (accepts barber_id and service_ids, but ignores service_ids)
+// Schema for frontend compatibility (accepts doctor_id and service_ids, but ignores service_ids)
 const createBookingSchema = z.object({
   phone_number: z.string().min(1),
   doctor_id: z.union([z.string(), z.number()]).optional(),
-  barber_id: z.union([z.string(), z.number()]).optional(),
+  doctor_id: z.union([z.string(), z.number()]).optional(),
   service_ids: z.array(z.union([z.string(), z.number()])).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /bookings] Received body:', JSON.stringify(body, null, 2));
 
-    if (body.barber_id !== undefined && body.barber_id !== null && body.barber_id !== '') {
-      body.barber_id = String(body.barber_id).trim();
+    if (body.doctor_id !== undefined && body.doctor_id !== null && body.doctor_id !== '') {
+      body.doctor_id = String(body.doctor_id).trim();
     } else {
-      body.barber_id = undefined;
+      body.doctor_id = undefined;
     }
 
     if (body.doctor_id !== undefined && body.doctor_id !== null && body.doctor_id !== '') {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const doctorId = validation.data.doctor_id || validation.data.barber_id;
+    const doctorId = validation.data.doctor_id || validation.data.doctor_id;
 
     const bookingService = new BookingService();
     const createDto: CreateBookingDto = {

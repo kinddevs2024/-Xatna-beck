@@ -9,7 +9,7 @@ const createMultipleBookingsSchema = z.object({
   bookings: z.array(z.object({
     phone_number: z.string().min(1),
     doctor_id: z.union([z.string(), z.number()]).optional(),
-    barber_id: z.union([z.string(), z.number()]).optional(),
+    doctor_id: z.union([z.string(), z.number()]).optional(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
     client_name: z.string().optional(),
@@ -24,7 +24,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: any = await request.json();
-    
+
     // Валидация
     const validation = createMultipleBookingsSchema.safeParse(body);
     if (!validation.success) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     for (const bookingData of validation.data.bookings) {
       try {
-        const doctorId = bookingData.doctor_id ?? bookingData.barber_id;
+        const doctorId = bookingData.doctor_id ?? bookingData.doctor_id;
         const booking: CreateBookingDto = {
           phone_number: bookingData.phone_number,
           doctor_id: doctorId !== undefined ? String(doctorId) : undefined,
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
         const created = await bookingService.create(booking);
         results.push({ success: true, booking: created });
       } catch (error: any) {
-        results.push({ 
-          success: false, 
+        results.push({
+          success: false,
           error: error.message || 'Xatolik yuz berdi',
-          bookingData 
+          bookingData
         });
       }
     }

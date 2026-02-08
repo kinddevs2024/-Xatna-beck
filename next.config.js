@@ -19,20 +19,20 @@ const nextConfig = {
         source: '/admin/:path*',
         destination: '/api/admin/:path*',
       },
-      // Перенаправление /barber на /api/barber
+      // Перенаправление /doctor на /api/doctor
       {
-        source: '/barber/:path*',
-        destination: '/api/barber/:path*',
+        source: '/doctor/:path*',
+        destination: '/api/doctor/:path*',
       },
       // Перенаправление /bookings на /api/bookings
       {
         source: '/bookings/:path*',
         destination: '/api/bookings/:path*',
       },
-      // Перенаправление /barber-services на /api/barber-services
+      // Перенаправление /doctor-services на /api/doctor-services
       {
-        source: '/barber-services/:path*',
-        destination: '/api/barber-services/:path*',
+        source: '/doctor-services/:path*',
+        destination: '/api/doctor-services/:path*',
       },
       // Перенаправление /service-categories на /api/service-categories
       {

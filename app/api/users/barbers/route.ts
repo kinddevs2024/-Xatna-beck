@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     return createSuccessResponse(doctorsWithoutPasswords, 200, request);
   } catch (error: any) {
-    console.error('Error in GET /users/barbers:', error);
+    console.error('Error in GET /users/doctors:', error);
     return createErrorResponse(error.message || 'Xatolik yuz berdi', 500, request);
   }
 }

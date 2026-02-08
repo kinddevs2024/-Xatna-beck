@@ -58,7 +58,7 @@ npm run start
 ### Бронирование
 
 - `POST /api/bookings` - Создать бронирование (публичный)
-  - Принимает: `phone_number`, `barber_id` (или `doctor_id`), `service_ids` (игнорируется), `date`, `time`, `client_name`
+  - Принимает: `phone_number`, `doctor_id` (или `doctor_id`), `service_ids` (игнорируется), `date`, `time`, `client_name`
   - Каждое бронирование длится 30 минут (фиксировано)
 - `GET /api/bookings` - Получить все бронирования (требует авторизации)
 - `GET /api/bookings/:id` - Получить бронирование по ID
@@ -69,7 +69,7 @@ npm run start
 - `POST /api/bookings/admin/statistics` - Получить статистику (только админ, альтернативный путь)
 - `GET /api/bookings/doctor` - Получить бронирования default доктора
 - `GET /api/bookings/doctor/:doctorId` - Получить бронирования конкретного доктора
-- `GET /api/bookings/barber` - Alias для /api/bookings/doctor (совместимость)
+- `GET /api/bookings/doctor` - Alias для /api/bookings/doctor (совместимость)
 - `GET /api/bookings/comments` - Получить все бронирования с комментариями
 
 ### Пользователи
@@ -78,16 +78,16 @@ npm run start
 - `GET /api/users/:id` - Получить пользователя по ID
 - `PATCH /api/users/:id/role` - Изменить роль пользователя (только админ)
 - `DELETE /api/users/:id` - Удалить пользователя (только админ)
-- `GET /api/users/barbers` - Получить всех докторов (для совместимости с фронтендом)
+- `GET /api/users/doctors` - Получить всех докторов (для совместимости с фронтендом)
 
 ### Доктор (Doctor)
 
 - `GET /api/doctor` - Получить информацию о default докторе (публичный)
 - `POST /api/doctor` - Создать доктора (только админ)
 - `PATCH /api/doctor/:id` - Обновить доктора (только админ или сам доктор)
-- `GET /api/barber` - Alias для /api/doctor (совместимость)
-- `POST /api/barber` - Alias для /api/doctor (совместимость)
-- `PATCH /api/barber/:id` - Alias для /api/doctor/:id (совместимость)
+- `GET /api/doctor` - Alias для /api/doctor (совместимость)
+- `POST /api/doctor` - Alias для /api/doctor (совместимость)
+- `PATCH /api/doctor/:id` - Alias для /api/doctor/:id (совместимость)
 
 ### Админ (Admin)
 
@@ -113,7 +113,7 @@ app/
 │   ├── bookings/     # Бронирования
 │   ├── users/        # Пользователи
 │   ├── doctor/       # Доктор
-│   ├── barber/       # Alias для doctor (совместимость)
+│   ├── doctor/       # Alias для doctor (совместимость)
 │   └── admin/        # Админ
 lib/
 ├── auth.ts           # JWT функции
@@ -146,7 +146,7 @@ CORS настроен для работы с этим доменом в `next.co
 
 1. **Фиксированные 30 минут**: Каждое бронирование длится ровно 30 минут, независимо от параметров запроса
 2. **Один доктор**: Система работает с одним default доктором, который создается автоматически
-3. **Совместимость с фронтендом**: API принимает `barber_id` и `service_ids` для совместимости, но `service_ids` игнорируется
+3. **Совместимость с фронтендом**: API принимает `doctor_id` и `service_ids` для совместимости, но `service_ids` игнорируется
 4. **Статусы бронирований**: Принимаются как строки в нижнем регистре ("approved", "rejected") и преобразуются в enum
 
 ## Примеры запросов
@@ -158,7 +158,7 @@ curl -X POST http://localhost:3000/api/bookings \
   -H "Content-Type: application/json" \
   -d '{
     "phone_number": "+998901234567",
-    "barber_id": 1,
+    "doctor_id": 1,
     "service_ids": [1],
     "date": "2025-01-27",
     "time": "14:00",

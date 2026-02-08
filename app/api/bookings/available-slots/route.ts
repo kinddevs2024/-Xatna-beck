@@ -9,7 +9,7 @@ import { z } from 'zod';
 const getAvailableSlotsSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   doctor_id: z.union([z.string(), z.number()]).optional(),
-  barber_id: z.union([z.string(), z.number()]).optional(), // Для совместимости с фронтендом
+  doctor_id: z.union([z.string(), z.number()]).optional(), // Для совместимости с фронтендом
 });
 
 export async function OPTIONS(request: NextRequest) {
@@ -21,26 +21,26 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const doctorIdParam = searchParams.get('doctor_id');
-    const barberIdParam = searchParams.get('barber_id');
+    const doctorIdParam = searchParams.get('doctor_id');
 
     // Нормализация данных
     let doctorId: string | undefined;
     if (doctorIdParam) {
       doctorId = String(doctorIdParam).trim();
     }
-    if (!doctorId && barberIdParam) {
-      doctorId = String(barberIdParam).trim();
+    if (!doctorId && doctorIdParam) {
+      doctorId = String(doctorIdParam).trim();
     }
 
     // Валидация
     const validation = getAvailableSlotsSchema.safeParse({
       date: date || '',
       doctor_id: doctorId,
-      barber_id: doctorId,
+      doctor_id: doctorId,
     });
 
     if (!validation.success) {
-      return createErrorResponse('Noto\'g\'ri so\'rov. Sana va doctor_id/barber_id kerak.', 400, request);
+      return createErrorResponse('Noto\'g\'ri so\'rov. Sana va doctor_id/doctor_id kerak.', 400, request);
     }
 
     if (!date) {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Найти доктора
     const userService = new UserService();
     let doctor;
-    
+
     if (doctorId) {
       doctor = await userService.findOne(doctorId);
       if (!doctor || String(doctor.role).toUpperCase() !== UserRole.DOCTOR) {
@@ -68,10 +68,10 @@ export async function GET(request: NextRequest) {
     // Получить рабочие часы доктора
     const workStart = doctor.work_start_time || '09:00';
     const workEnd = doctor.work_end_time || '18:00';
-    
+
     const [startHour, startMinute] = workStart.split(':').map(Number);
     const [endHour, endMinute] = workEnd.split(':').map(Number);
-    
+
     const startMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
 
@@ -86,18 +86,18 @@ export async function GET(request: NextRequest) {
     // Получить забронированные времена для этой даты
     const bookingService = new BookingService();
     const bookings = await bookingService.findByDoctorId(doctor.id);
-    
+
     // Фильтруем бронирования по дате и активным статусам
     const bookedTimes = bookings
       .filter(b => {
         const bookingDate = b.date;
         const bookingStatus = String(b.status).toUpperCase();
-        return bookingDate === date && 
-               (bookingStatus === 'PENDING' || bookingStatus === 'APPROVED');
+        return bookingDate === date &&
+          (bookingStatus === 'PENDING' || bookingStatus === 'APPROVED');
       })
       .map(b => b.time)
       .filter(Boolean);
-    
+
     console.log(`[GET /bookings/available-slots] Date: ${date}, Doctor: ${doctor.id}, Booked times:`, bookedTimes);
 
     // Фильтруем доступные слоты (убираем забронированные и прошедшие времена)
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     const selectedDateObj = new Date(date);
     selectedDateObj.setHours(0, 0, 0, 0);
     const isToday = selectedDateObj.getTime() === today.getTime();
-    
+
     // Текущее время в минутах (если выбран сегодня)
     const now = new Date();
     const currentTimeMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     const availableSlots = allSlots.filter(slot => {
       const [slotHour, slotMinute] = slot.split(':').map(Number);
       const slotStartMinutes = slotHour * 60 + slotMinute;
-      
+
       // Если выбран сегодня, фильтруем прошедшие времена
       if (isToday && currentTimeMinutes >= 0) {
         // Оставляем только времена, которые еще не прошли (блокируем прошедшие времена)
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
           return false;
         }
       }
-      
+
       // Проверяем, не пересекается ли слот с забронированными временами
       const slotEndMinutes = slotStartMinutes + 30; // 30 минут длительность
 
