@@ -1783,9 +1783,9 @@ class TelegramService {
   private async handleCancelBooking(query: TelegramBot.CallbackQuery, data: string) {
     const chatId = query.message?.chat.id;
     const userId = query.from.id;
-    const bookingId = data.replace('cancel_', '');
+    const bookingId = parseInt(data.replace('cancel_', ''));
 
-    if (!chatId || !bookingId) return;
+    if (!chatId || isNaN(bookingId)) return;
 
     try {
       const user = await this.getUserByTelegramId(userId);
@@ -1796,7 +1796,7 @@ class TelegramService {
 
       const booking = await prisma.booking.findFirst({
         where: {
-          id: bookingId,
+          id: bookingId.toString(),
           client_id: user.id
         },
         include: {
@@ -1816,7 +1816,7 @@ class TelegramService {
 
       // Обновляем статус
       await prisma.booking.update({
-        where: { id: bookingId },
+        where: { id: bookingId.toString() },
         data: { status: BookingStatus.CANCELLED }
       });
 
