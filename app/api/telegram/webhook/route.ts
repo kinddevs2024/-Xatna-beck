@@ -19,22 +19,17 @@ export async function POST(request: NextRequest) {
             callback_query: body.callback_query?.data?.substring(0, 50)
         });
 
-        // Ensure Telegram service is initialized
+        // Ensure Telegram service is initialized (webhook mode: polling off)
         await telegramService.ensureInitialized();
 
-        // Handle the update by simulating a message or callback query
-        if (body.message) {
-            // Create a simulated TelegramBot.Message for the service
-            const message = body.message as TelegramBot.Message;
-
-            // Call the handler - we need to add this method to TelegramService
-            await telegramService.handleWebhookMessage(message);
+        const bot = telegramService.getBot();
+        if (bot && typeof (bot as TelegramBot & { processUpdate?: (u: unknown) => void }).processUpdate === 'function') {
+            // Роутит update во все onText / callback_query — как при polling
+            (bot as TelegramBot & { processUpdate: (u: unknown) => void }).processUpdate(body);
+        } else if (body.message) {
+            await telegramService.handleWebhookMessage(body.message as TelegramBot.Message);
         } else if (body.callback_query) {
-            // Create a simulated TelegramBot.CallbackQuery
-            const query = body.callback_query as TelegramBot.CallbackQuery;
-
-            // Call the handler - we need to add this method to TelegramService
-            await telegramService.handleWebhookCallback(query);
+            await telegramService.handleWebhookCallback(body.callback_query as TelegramBot.CallbackQuery);
         }
 
         // Return success to Telegram

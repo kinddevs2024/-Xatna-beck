@@ -1,31 +1,6 @@
 import { prisma } from './db';
-import { hashPassword } from './auth';
+import { hashPassword } from './password';
 import { UserRole } from '@/types';
-
-// Инициализируем Telegram бота при импорте модуля
-let telegramBotInitialized = false;
-export function initializeTelegramBot() {
-  if (telegramBotInitialized) return;
-
-  try {
-    // Импортируем сервис, что запустит конструктор и polling
-    // Используем динамический импорт, чтобы избежать проблем с циклическими зависимостями
-    import('./services/telegram.service').then((module) => {
-      telegramBotInitialized = true;
-      // Бот уже инициализирован в конструкторе, просто логируем
-      const isInitialized = module.telegramService.isInitialized();
-      if (isInitialized) {
-        console.log('[Init] ✅ Telegram Bot модуль загружен и инициализирован');
-      } else {
-        console.warn('[Init] ⚠️ Telegram Bot модуль загружен, но не инициализирован');
-      }
-    }).catch((error) => {
-      console.error('[Init] ❌ Ошибка инициализации Telegram Bot:', error);
-    });
-  } catch (error) {
-    console.error('[Init] ❌ Ошибка импорта Telegram Bot:', error);
-  }
-}
 
 // Helper function to retry database operations with exponential backoff
 async function retryDatabaseOperation<T>(

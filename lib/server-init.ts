@@ -3,7 +3,6 @@
 
 import { initializeDatabase } from './init';
 import { telegramService } from './services/telegram.service';
-import { autoInitializeTelegramBot } from './telegram-auto-init';
 import { validateEnv } from './env-validation';
 
 // Suppress noisy DeprecationWarning from legacy `url.parse()` usage in
@@ -34,55 +33,64 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
 }
 
 let serverInitialized = false;
+let serverInitializationPromise: Promise<void> | null = null;
 
 export async function initializeServer() {
   if (serverInitialized) return;
 
-  try {
-    // Validate environment variables
-    validateEnv();
-
-    // Инициализируем базу данных (с встроенной обработкой ошибок)
+  serverInitializationPromise ??= (async () => {
     try {
-      await initializeDatabase();
-    } catch (dbError: any) {
-      console.warn('[Server Init] ⚠️ Database initialization warning:', dbError?.message || dbError);
-      // Продолжаем, даже если инициализация базы данных не удалась
-      // Реальные запросы к БД могут работать
-    }
+      // Validate environment variables
+      validateEnv();
 
-    // Инициализируем Telegram бота (принудительно)
-    if (process.env.BOT_TOKEN && process.env.BOT_TOKEN.trim() !== '') {
-      console.log('[Server Init] 🔄 Initializing Telegram Bot...');
-      await telegramService.ensureInitialized();
-
-      // Проверяем статус
-      const isInitialized = telegramService.isInitialized();
-      if (isInitialized) {
-        console.log('[Server Init] ✅ Telegram Bot initialized');
-      } else {
-        console.warn('[Server Init] ⚠️ Telegram Bot initialization failed or not confirmed');
+      // Инициализируем базу данных (с встроенной обработкой ошибок)
+      try {
+        await initializeDatabase();
+      } catch (dbError: any) {
+        console.warn('[Server Init] ⚠️ Database initialization warning:', dbError?.message || dbError);
+        // Продолжаем, даже если инициализация базы данных не удалась
+        // Реальные запросы к БД могут работать
       }
-    } else {
-      console.warn('[Server Init] ⚠️ BOT_TOKEN not configured');
-    }
 
-    serverInitialized = true;
-    console.log('[Server Init] ✅ Server initialized successfully');
-  } catch (error: any) {
-    console.error('[Server Init] ❌ Server initialization error:', error?.message || error);
-    // Не бросаем ошибку, позволяем серверу продолжать работу
-  }
+      // Инициализируем Telegram бота (принудительно)
+      if (process.env.BOT_TOKEN && process.env.BOT_TOKEN.trim() !== '') {
+        console.log('[Server Init] 🔄 Initializing Telegram Bot...');
+        await telegramService.ensureInitialized();
+
+        // Проверяем статус
+        const isInitialized = telegramService.isInitialized();
+        if (isInitialized) {
+          console.log('[Server Init] ✅ Telegram Bot initialized');
+        } else {
+          console.warn('[Server Init] ⚠️ Telegram Bot initialization failed or not confirmed');
+        }
+      } else {
+        console.warn('[Server Init] ⚠️ BOT_TOKEN not configured');
+      }
+
+      serverInitialized = true;
+      console.log('[Server Init] ✅ Server initialized successfully');
+    } catch (error: any) {
+      console.error('[Server Init] ❌ Server initialization error:', error?.message || error);
+      // Не бросаем ошибку, позволяем серверу продолжать работу
+    } finally {
+      serverInitializationPromise = null;
+    }
+  })();
+
+  await serverInitializationPromise;
 }
 
-// Автоматически инициализируем Telegram бота при импорте (если не в Edge Runtime)
-if (typeof process !== 'undefined' && process.env && !process.env.NEXT_RUNTIME) {
+// Автоматически инициализируем при импорте модуля в Node (не в Edge).
+// Раньше было !process.env.NEXT_RUNTIME — в Node.js Next задаёт NEXT_RUNTIME=nodejs,
+// из‑за этого автоинициализация никогда не выполнялась.
+if (typeof process !== 'undefined' && process.env && process.env.NEXT_RUNTIME !== 'edge') {
   // Небольшая задержка для запуска сервера
   const initializeBot = async () => {
     try {
       await new Promise(r => setTimeout(r, 500));
-      console.log('[Server Init] 🤖 Auto-initializing Telegram Bot...');
-      await autoInitializeTelegramBot();
+      console.log('[Server Init] 🤖 Auto-initializing server (DB + Telegram)...');
+      await initializeServer();
     } catch (err: any) {
       console.error('[Server Init] ⚠️ Auto-init failed:', err?.message);
     }

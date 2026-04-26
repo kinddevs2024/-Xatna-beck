@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { User, UserRole } from '@/types';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword } from '@/lib/password';
 
 export class UserService {
   private normalizeTgUsername(tg_username?: string): string | undefined {

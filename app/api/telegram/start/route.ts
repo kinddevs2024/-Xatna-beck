@@ -3,14 +3,15 @@
  * This keeps the bot alive and listening for messages
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { telegramService } from '@/lib/services/telegram.service';
 import { initializeServer } from '@/lib/server-init';
+import { handleTelegramOptions, telegramCorsHeaders } from '@/lib/telegram-http';
 
 // Increase timeout for this endpoint
 export const maxDuration = 60;
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         console.log('[Telegram Start] 🔄 Starting Telegram bot...');
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
                     message: 'Telegram bot is active and listening for messages',
                     timestamp: new Date().toISOString()
                 },
-                { status: 200 }
+                { status: 200, headers: telegramCorsHeaders() }
             );
         } else {
             console.warn('[Telegram Start] ⚠️ Bot initialization attempted but not confirmed');
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
                     message: 'Telegram bot initialization in progress',
                     timestamp: new Date().toISOString()
                 },
-                { status: 202 }
+                { status: 202, headers: telegramCorsHeaders() }
             );
         }
     } catch (error: any) {
@@ -52,18 +53,11 @@ export async function GET(request: NextRequest) {
                 message: error?.message || 'Failed to start Telegram bot',
                 error: error?.toString()
             },
-            { status: 500 }
+            { status: 500, headers: telegramCorsHeaders() }
         );
     }
 }
 
-export async function OPTIONS(request: NextRequest) {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS, POST',
-            'Access-Control-Allow-Headers': 'Content-Type',
-        },
-    });
+export async function OPTIONS() {
+    return handleTelegramOptions();
 }

@@ -1,37 +1,30 @@
 /**
- * Environment variable validation
- * Validates required environment variables on server startup
+ * Environment validation for this repo (Telegram bot + MongoDB).
+ * DATABASE_URL is always required where Prisma runs.
+ * BOT_TOKEN is required only when actually running the bot (`npm run bot`).
  */
 
-const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_EXPIRATION'] as const;
+const requiredForPrisma = ['DATABASE_URL'] as const;
 
-/**
- * Validates environment variables
- * @throws {Error} If required environment variables are missing or invalid
- */
 export function validateEnv(): void {
   const missing: string[] = [];
   const invalid: string[] = [];
 
-  // Check required variables
-  for (const varName of requiredEnvVars) {
+  for (const varName of requiredForPrisma) {
     const value = process.env[varName];
     if (!value || value.trim() === '') {
       missing.push(varName);
-    } else {
-      // Additional validation
-      if (varName === 'JWT_SECRET' && value.length < 32) {
-        invalid.push(`${varName} must be at least 32 characters long`);
-      }
+    } else if (varName === 'DATABASE_URL') {
       if (
-        varName === 'DATABASE_URL' &&
         !value.startsWith('file:') &&
         !value.startsWith('postgresql://') &&
         !value.startsWith('postgres://') &&
         !value.startsWith('mongodb://') &&
         !value.startsWith('mongodb+srv://')
       ) {
-        invalid.push(`${varName} must start with 'file:' (SQLite), 'postgresql://' (PostgreSQL), or 'mongodb://'/'mongodb+srv://' (MongoDB)`);
+        invalid.push(
+          `${varName} must start with 'file:', 'postgresql://', or 'mongodb://'/'mongodb+srv://'`
+        );
       }
     }
   }
@@ -39,21 +32,19 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}\n` +
-      `Please check your .env file and ensure all required variables are set.`
+        `Set them in .env (see env.example).`
     );
   }
 
   if (invalid.length > 0) {
-    throw new Error(
-      `Invalid environment variables:\n${invalid.join('\n')}\n` +
-      `Please fix these issues in your .env file.`
-    );
+    throw new Error(`Invalid environment variables:\n${invalid.join('\n')}`);
   }
 
-  // Warn about optional but recommended variables
-  if (!process.env.FRONTEND_URL) {
-    console.warn('[Env Validation] ⚠️ FRONTEND_URL is not set. CORS may not work correctly.');
-  }
+  console.log('[Env] DATABASE_URL is configured.');
+}
 
-  console.log('[Env Validation] ✅ All required environment variables are valid');
+export function assertBotToken(): void {
+  if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN.trim() === '') {
+    throw new Error('BOT_TOKEN is missing. Add it to .env to run the Telegram bot.');
+  }
 }
