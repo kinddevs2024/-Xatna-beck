@@ -37,7 +37,7 @@ export class UserService {
     }
 
     if (data.tg_id) {
-      const existing = await prisma.user.findUnique({
+      const existing = await prisma.user.findFirst({
         where: { tg_id: data.tg_id },
       });
       if (existing) {
@@ -46,7 +46,7 @@ export class UserService {
     }
 
     if (data.tg_username) {
-      const existing = await prisma.user.findUnique({
+      const existing = await prisma.user.findFirst({
         where: { tg_username: data.tg_username },
       });
       if (existing) {
@@ -108,7 +108,7 @@ export class UserService {
   async findByTgUsername(tgUsername: string): Promise<User | null> {
     if (!tgUsername) return null;
     const normalized = this.normalizeTgUsername(tgUsername);
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { tg_username: normalized },
     });
     return user as User | null;

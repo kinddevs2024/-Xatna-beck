@@ -84,7 +84,13 @@ export async function initializeServer() {
 // Автоматически инициализируем при импорте модуля в Node (не в Edge).
 // Раньше было !process.env.NEXT_RUNTIME — в Node.js Next задаёт NEXT_RUNTIME=nodejs,
 // из‑за этого автоинициализация никогда не выполнялась.
-if (typeof process !== 'undefined' && process.env && process.env.NEXT_RUNTIME !== 'edge') {
+if (
+  typeof process !== 'undefined' &&
+  process.env &&
+  process.env.NEXT_RUNTIME !== 'edge' &&
+  process.env.NEXT_PHASE !== 'phase-production-build' &&
+  process.env.npm_lifecycle_event !== 'build'
+) {
   // Небольшая задержка для запуска сервера
   const initializeBot = async () => {
     try {

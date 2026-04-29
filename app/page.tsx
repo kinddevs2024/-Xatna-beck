@@ -18,7 +18,7 @@ export default function Home() {
         npm run bot
       </pre>
       <p>
-        Keep <code>.env</code> with <code>DATABASE_URL</code> and <code>BOT_TOKEN</code>. For production with
+        Keep <code>.env</code> with <code>MONGODB_URI</code> and <code>BOT_TOKEN</code>. For production with
         Vercel, set <code>TELEGRAM_USE_WEBHOOK=true</code> and point Telegram to <code>/api/telegram/webhook</code>.
       </p>
     </div>

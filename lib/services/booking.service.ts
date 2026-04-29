@@ -181,6 +181,33 @@ export class BookingService {
       }
     }
 
+    const doctorChatId = booking.doctor?.tg_id
+      || (booking.doctor?.tg_username ? `@${booking.doctor.tg_username.replace(/^@/, '')}` : null);
+
+    if (doctorChatId) {
+      try {
+        const { telegramService } = await import('@/lib/services/telegram.service');
+        const message =
+          `Yangi bron!\n\n` +
+          `Mijoz: ${booking.client?.name || client_name || "Noma'lum"}\n` +
+          `Telefon: ${booking.client?.phone_number || phone_number}\n` +
+          `Sana: ${booking.date}\n` +
+          `Vaqt: ${booking.time}\n` +
+          `Holat: ${booking.status}\n` +
+          `Bron ID: ${booking.id}`;
+
+        const sent = await telegramService.sendMessage(doctorChatId, message);
+        if (!sent && !booking.doctor?.tg_id) {
+          console.warn(
+            `[BookingService] Could not notify doctor @${booking.doctor?.tg_username}. ` +
+            'The doctor must open the bot and send /start once so Telegram exposes tg_id.'
+          );
+        }
+      } catch (error) {
+        console.error('Error sending booking notification to doctor:', error);
+      }
+    }
+
     return booking as Booking;
   }
 
@@ -246,7 +273,8 @@ export class BookingService {
         throw new Error("Doktor ish vaqti noto'g'ri formatda (HH:mm)");
       }
 
-      const workStartMinutes = startHour * 60 + startMinute;
+      const sundayStartMinutes = selectedDate.getDay() === 0 ? 11 * 60 : 0;
+      const workStartMinutes = Math.max(startHour * 60 + startMinute, sundayStartMinutes);
       const workEndMinutes = endHour * 60 + endMinute;
 
       if (startMinutes < workStartMinutes || endMinutes > workEndMinutes) {

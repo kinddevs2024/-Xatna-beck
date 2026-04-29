@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+  url      = env("MONGODB_URI")
 }
 
 // SQLite не поддерживает enums, используем String
@@ -19,8 +19,8 @@ model User {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   name          String?
   phone_number  String?
-  tg_id         String?  @unique
-  tg_username   String?  @unique
+  tg_id         String?
+  tg_username   String?
   password      String?
   role          String   @default("CLIENT") // UserRole: ADMIN, DOCTOR, CLIENT, SUPER_ADMIN
   working       Boolean? @default(false)

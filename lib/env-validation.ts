@@ -1,10 +1,10 @@
 /**
  * Environment validation for this repo (Telegram bot + MongoDB).
- * DATABASE_URL is always required where Prisma runs.
+ * MONGODB_URI is required where Prisma runs.
  * BOT_TOKEN is required only when actually running the bot (`npm run bot`).
  */
 
-const requiredForPrisma = ['DATABASE_URL'] as const;
+const requiredForPrisma = ['MONGODB_URI'] as const;
 
 export function validateEnv(): void {
   const missing: string[] = [];
@@ -14,16 +14,13 @@ export function validateEnv(): void {
     const value = process.env[varName];
     if (!value || value.trim() === '') {
       missing.push(varName);
-    } else if (varName === 'DATABASE_URL') {
+    } else if (varName === 'MONGODB_URI') {
       if (
-        !value.startsWith('file:') &&
-        !value.startsWith('postgresql://') &&
-        !value.startsWith('postgres://') &&
         !value.startsWith('mongodb://') &&
         !value.startsWith('mongodb+srv://')
       ) {
         invalid.push(
-          `${varName} must start with 'file:', 'postgresql://', or 'mongodb://'/'mongodb+srv://'`
+          `${varName} must start with 'mongodb://' or 'mongodb+srv://'`
         );
       }
     }
@@ -40,7 +37,7 @@ export function validateEnv(): void {
     throw new Error(`Invalid environment variables:\n${invalid.join('\n')}`);
   }
 
-  console.log('[Env] DATABASE_URL is configured.');
+  console.log('[Env] MONGODB_URI is configured.');
 }
 
 export function assertBotToken(): void {

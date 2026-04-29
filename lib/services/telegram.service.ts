@@ -16,6 +16,26 @@ class TelegramService {
     // Инициализация будет выполнена при первом использовании
   }
 
+  private isDatabaseConnectionError(error: any): boolean {
+    const message = String(error?.message || error || '');
+    return (
+      message.includes('Error creating a database connection') ||
+      message.includes('DNS resolution') ||
+      message.includes('_mongodb._tcp') ||
+      message.includes('Server selection timeout')
+    );
+  }
+
+  private async sendDatabaseUnavailable(chatId: number): Promise<void> {
+    if (!this.bot) return;
+
+    await this.bot.sendMessage(
+      chatId,
+      `❌ Ma'lumotlar bazasiga ulanishda xatolik bor.\n\n` +
+      `Iltimos, birozdan keyin qayta urinib ko'ring.`
+    );
+  }
+
   /**
    * Check if bot is initialized
    */
@@ -63,18 +83,6 @@ class TelegramService {
 
       console.log('🔄 Initializing Telegram Bot...');
       console.log(`[Telegram Bot] Token present: ${this.botToken.substring(0, 10)}...`);
-
-      // Проверяем доступность Prisma (не в Edge Runtime)
-      try {
-        await prisma.$connect();
-        await prisma.$disconnect();
-      } catch (prismaError: any) {
-        if (prismaError.message?.includes('Edge Runtime')) {
-          console.warn('⚠️ Telegram Bot cannot be initialized in Edge Runtime');
-          return;
-        }
-        throw prismaError;
-      }
 
       if (useWebhookMode) {
         console.log('[Telegram Bot] Creating bot instance in webhook mode (no polling)');
@@ -362,6 +370,10 @@ class TelegramService {
         });
         if (this.bot && msg.chat) {
           try {
+            if (this.isDatabaseConnectionError(error)) {
+              await this.sendDatabaseUnavailable(msg.chat.id);
+              return;
+            }
             await this.bot.sendMessage(
               msg.chat.id,
               `❌ Xatolik yuz berdi.\n\n${error.message || 'Noma\'lum xatolik'}\n\nIltimos, keyinroq urinib ko'ring.`
@@ -408,7 +420,16 @@ class TelegramService {
       }
 
       // Проверяем, зарегистрирован ли пользователь
-      const user = await this.getUserByTelegramId(userId);
+      let user = null;
+      try {
+        user = await this.getUserByTelegramId(userId);
+      } catch (error: any) {
+        if (this.isDatabaseConnectionError(error)) {
+          console.warn('[handleStart] Database unavailable; showing public start screen.');
+        } else {
+          throw error;
+        }
+      }
 
       // Если пользователь зарегистрирован и имеет имя и телефон - показываем главную страницу
       if (user && user.name && user.phone_number && user.phone_number.trim() !== '') {
@@ -439,6 +460,10 @@ class TelegramService {
       );
     } catch (error: any) {
       console.error('Error in /start handler:', error);
+      if (this.isDatabaseConnectionError(error)) {
+        await this.sendDatabaseUnavailable(chatId);
+        return;
+      }
       await this.bot!.sendMessage(chatId, '❌ Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.');
     }
   }
@@ -448,6 +473,28 @@ class TelegramService {
    */
   private async showHomePage(chatId: number, user: any) {
     console.log(`[showHomePage] Showing home page for user ${user.id}, name=${user.name}, phone=${user.phone_number}`);
+
+    if (user.role === UserRole.DOCTOR) {
+      await this.bot!.sendMessage(
+        chatId,
+        `🏥 *Doktor paneli*\n\n` +
+        `👤 Shifokor: *${user.name}*\n` +
+        `📱 Raqam: *${user.phone_number || '—'}*\n\n` +
+        `Quyidagi tugmalardan foydalaning:`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📋 Barcha bronlarim', callback_data: 'my_bookings' }],
+              [{ text: '📅 Bronlar kalendari', callback_data: 'doctor_calendar' }],
+              [{ text: '❓ Qo\'llanma', callback_data: 'help' }]
+            ]
+          }
+        }
+      );
+      console.log(`[showHomePage] Doctor home page sent successfully`);
+      return;
+    }
 
     const keyboard = {
       reply_markup: {
@@ -555,6 +602,57 @@ class TelegramService {
       console.log(`[handleMyBookingsDirect] Found user: ID=${user.id}, name=${user.name}, phone=${user.phone_number || 'null'}, tg_id=${user.tg_id || 'null'}`);
 
       // Ищем бронирования по client_id
+      if (user.role === UserRole.DOCTOR) {
+        const doctorBookings = await prisma.booking.findMany({
+          where: { doctor_id: user.id },
+          include: {
+            client: true,
+          },
+          orderBy: [
+            { date: 'desc' },
+            { time: 'desc' },
+          ],
+          take: 20,
+        });
+
+        console.log(`[handleMyBookingsDirect] Found ${doctorBookings.length} doctor bookings for doctor ${user.id}`);
+
+        if (doctorBookings.length === 0) {
+          await this.bot!.sendMessage(
+            chatId,
+            '📭 Hozircha sizga biriktirilgan bronlar yo\'q.',
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🏠 Bosh sahifa', callback_data: 'start' }]
+                ]
+              }
+            }
+          );
+          return;
+        }
+
+        for (const booking of doctorBookings) {
+          const statusText = {
+            'PENDING': 'Kutilmoqda',
+            'APPROVED': 'Tasdiqlandi',
+            'REJECTED': 'Rad etildi',
+            'CANCELLED': 'Bekor qilindi',
+            'COMPLETED': 'Yakunlandi',
+          }[booking.status] || booking.status;
+
+          const message = `📋 *Bron #${booking.id}*\n\n` +
+            `👤 Mijoz: ${booking.client?.name || "Noma'lum"}\n` +
+            `📱 Telefon: ${booking.client?.phone_number || "Noma'lum"}\n` +
+            `📆 Sana: ${booking.date}\n` +
+            `⏰ Vaqt: ${booking.time}\n` +
+            `📊 Holat: ${statusText}`;
+
+          await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+        }
+        return;
+      }
+
       let bookings = await prisma.booking.findMany({
         where: { client_id: user.id },
         include: {
@@ -955,7 +1053,14 @@ class TelegramService {
 
     try {
       console.log(`[Callback] Processing: ${data}`);
-      await this.bot.answerCallbackQuery(query.id);
+      if (
+        !data.startsWith('booked_time_') &&
+        !data.startsWith('doctor_free_') &&
+        !data.startsWith('doctor_booked_') &&
+        !data.startsWith('doctor_past_')
+      ) {
+        await this.bot.answerCallbackQuery(query.id);
+      }
 
       if (data === 'start') {
         await this.handleStart(query.message!);
@@ -1255,6 +1360,21 @@ class TelegramService {
           return;
         }
         await this.handleAvailable(query.message!);
+      } else if (data === 'doctor_calendar') {
+        await this.handleDoctorCalendar(query);
+      } else if (data.startsWith('doctor_month_')) {
+        await this.handleDoctorMonthSelection(query, data);
+      } else if (data.startsWith('doctor_date_')) {
+        await this.handleDoctorDateSelection(query, data);
+      } else if (data.startsWith('doctor_free_')) {
+        await this.handleDoctorFreeSlot(query, data);
+      } else if (data.startsWith('doctor_booked_')) {
+        await this.handleDoctorBookedSlot(query, data);
+      } else if (data.startsWith('doctor_past_')) {
+        await this.bot!.answerCallbackQuery(query.id, {
+          text: 'Bu vaqt o\'tib ketgan.',
+          show_alert: true,
+        });
       } else if (data.startsWith('month_')) {
         await this.handleMonthSelection(query, data);
       } else if (data.startsWith('date_')) {
@@ -1279,6 +1399,11 @@ class TelegramService {
         }
       } else if (data.startsWith('time_')) {
         await this.handleTimeSelection(query, data);
+      } else if (data.startsWith('booked_time_')) {
+        await this.bot!.answerCallbackQuery(query.id, {
+          text: 'Bu vaqt band. Boshqa vaqtni tanlang.',
+          show_alert: true,
+        });
       } else if (data.startsWith('service_')) {
         await this.handleServiceSelection(query, data);
       } else if (data.startsWith('cancel_')) {
@@ -1311,6 +1436,171 @@ class TelegramService {
   /**
    * Обработка выбора месяца
    */
+  private async handleDoctorCalendar(query: TelegramBot.CallbackQuery) {
+    const chatId = query.message?.chat.id;
+    const userId = query.from.id;
+    if (!chatId) return;
+
+    const user = await this.getUserByTelegramId(userId);
+    if (!user || user.role !== UserRole.DOCTOR) {
+      await this.bot!.answerCallbackQuery(query.id, {
+        text: 'Bu bo\'lim faqat doktor uchun.',
+        show_alert: true,
+      });
+      return;
+    }
+
+    this.userStates.set(userId, { action: 'doctor_calendar_month', step: 1 });
+    const text = `📅 *Bronlar kalendari*\n\nAvval oyni tanlang:`;
+    const options = {
+      parse_mode: 'Markdown' as const,
+      reply_markup: {
+        inline_keyboard: this.createDoctorMonthKeyboard(this.getAvailableMonths())
+      }
+    };
+
+    await this.bot!.editMessageText(text, {
+      chat_id: chatId,
+      message_id: query.message?.message_id,
+      ...options,
+    }).catch(async () => {
+      await this.bot!.sendMessage(chatId, text, options);
+    });
+  }
+
+  private async handleDoctorMonthSelection(query: TelegramBot.CallbackQuery, data: string) {
+    const chatId = query.message?.chat.id;
+    const userId = query.from.id;
+    const monthKey = data.replace('doctor_month_', '');
+    if (!chatId) return;
+
+    const state = this.userStates.get(userId) || {};
+    state.action = 'doctor_calendar_day';
+    state.doctorMonth = monthKey;
+    state.step = 2;
+    this.userStates.set(userId, state);
+
+    await this.bot!.editMessageText(
+      `📆 *Kunni tanlang*\n\nOy: ${this.formatMonthName(monthKey)}`,
+      {
+        chat_id: chatId,
+        message_id: query.message?.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: this.createDoctorDayKeyboard(this.getAvailableDaysForMonth(monthKey), monthKey)
+        }
+      }
+    );
+  }
+
+  private async handleDoctorDateSelection(query: TelegramBot.CallbackQuery, data: string) {
+    const chatId = query.message?.chat.id;
+    const userId = query.from.id;
+    const date = data.replace('doctor_date_', '');
+    if (!chatId) return;
+
+    const doctor = await this.getUserByTelegramId(userId);
+    if (!doctor || doctor.role !== UserRole.DOCTOR) return;
+
+    const state = this.userStates.get(userId) || {};
+    state.action = 'doctor_calendar_time';
+    state.doctorDate = date;
+    state.step = 3;
+    this.userStates.set(userId, state);
+
+    const slots = await this.getTimeSlotsWithStatus(doctor.id, date);
+    const bookedCount = slots.filter(slot => slot.isBooked).length;
+    const freeCount = slots.filter(slot => !slot.isBooked && !slot.isPast).length;
+
+    await this.bot!.editMessageText(
+      `📋 *${date} bronlari*\n\n` +
+      `🟢 Bo'sh: ${freeCount} ta\n` +
+      `🔴 Band: ${bookedCount} ta\n\n` +
+      `Qizil vaqtni bossangiz bron ma'lumotlari chiqadi. Bo'sh vaqtni bossangiz o'zingiz band qilasiz.`,
+      {
+        chat_id: chatId,
+        message_id: query.message?.message_id,
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: this.createDoctorTimeKeyboard(slots)
+        }
+      }
+    );
+  }
+
+  private async handleDoctorBookedSlot(query: TelegramBot.CallbackQuery, data: string) {
+    const chatId = query.message?.chat.id;
+    const bookingId = data.replace('doctor_booked_', '');
+    if (!chatId || !/^[a-f0-9]{24}$/i.test(bookingId)) return;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { client: true, doctor: true },
+    });
+
+    if (!booking) {
+      await this.bot!.answerCallbackQuery(query.id, { text: 'Bron topilmadi.', show_alert: true });
+      return;
+    }
+
+    await this.bot!.answerCallbackQuery(query.id);
+    await this.bot!.sendMessage(
+      chatId,
+      `🔴 *Band vaqt*\n\n` +
+      `👤 Mijoz: ${booking.client?.name || "Noma'lum"}\n` +
+      `📱 Telefon: ${booking.client?.phone_number || "Noma'lum"}\n` +
+      `📆 Sana: ${booking.date}\n` +
+      `⏰ Vaqt: ${booking.time}\n` +
+      `📊 Holat: ${booking.status}`,
+      { parse_mode: 'Markdown' }
+    );
+  }
+
+  private async handleDoctorFreeSlot(query: TelegramBot.CallbackQuery, data: string) {
+    const chatId = query.message?.chat.id;
+    const userId = query.from.id;
+    const state = this.userStates.get(userId);
+    if (!chatId || !state?.doctorDate) return;
+
+    const doctor = await this.getUserByTelegramId(userId);
+    if (!doctor || doctor.role !== UserRole.DOCTOR) return;
+
+    const rawTime = data.replace('doctor_free_', '');
+    const time = `${rawTime.slice(0, 2)}:${rawTime.slice(2, 4)}`;
+    const bookingService = new BookingService();
+    const isAvailable = await bookingService.checkTimeSlotAvailability(doctor.id, state.doctorDate, time, 30);
+
+    if (!isAvailable) {
+      await this.bot!.answerCallbackQuery(query.id, {
+        text: 'Bu vaqt hozir band.',
+        show_alert: true,
+      });
+      return;
+    }
+
+    this.userStates.set(userId, {
+      action: 'doctor_self_booking_name',
+      step: 1,
+      doctorDate: state.doctorDate,
+      doctorTime: time,
+    });
+
+    await this.bot!.answerCallbackQuery(query.id);
+    await this.bot!.sendMessage(
+      chatId,
+      `🟢 *${state.doctorDate} ${time}* vaqtini band qilish.\n\n` +
+      `Iltimos, mijoz ismini yuboring:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '❌ Bekor qilish', callback_data: 'doctor_calendar' }]
+          ]
+        }
+      }
+    );
+  }
+
   private async handleMonthSelection(query: TelegramBot.CallbackQuery, data: string) {
     const chatId = query.message?.chat.id;
     const userId = query.from.id;
@@ -1383,9 +1673,11 @@ class TelegramService {
     }
 
     try {
-      const availableSlots = await this.getAvailableSlots(doctor.id, date);
+      const timeSlots = await this.getTimeSlotsWithStatus(doctor.id, date);
+      const availableSlots = timeSlots.filter(slot => !slot.isBooked && !slot.isPast).map(slot => slot.time);
+      const bookedSlots = timeSlots.filter(slot => slot.isBooked);
 
-      if (availableSlots.length === 0) {
+      if (timeSlots.length === 0) {
         const monthKey = state.bookingMonth;
 
         // Если месяц не сохранен, извлекаем его из даты
@@ -1444,13 +1736,14 @@ class TelegramService {
           `⏰ *Vaqtni tanlang*\n\n` +
           `📅 Sana: ${new Date(date).toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n` +
           `👨‍⚕️ Shifokor: ${doctor.name}\n\n` +
-          `Mavjud vaqtlar: ${availableSlots.length} ta`,
+          `🟢 Bo'sh vaqtlar: ${availableSlots.length} ta\n` +
+          `🔴 Band vaqtlar: ${bookedSlots.length} ta`,
           {
             chat_id: chatId,
             message_id: query.message?.message_id,
             parse_mode: 'Markdown',
             reply_markup: {
-              inline_keyboard: this.createTimeKeyboard(availableSlots)
+              inline_keyboard: this.createTimeStatusKeyboard(timeSlots)
             }
           }
         );
@@ -2078,12 +2371,106 @@ class TelegramService {
         if (user) {
           await this.showHomePage(chatId, user);
         }
+      } else if (state.action === 'doctor_self_booking_name') {
+        const name = msg.text?.trim() || '';
+        if (name.length < 2) {
+          await this.bot!.sendMessage(chatId, `❌ Iltimos, ismni to'g'ri yuboring (kamida 2 belgi).`);
+          return;
+        }
+
+        state.clientName = name;
+        state.action = 'doctor_self_booking_phone';
+        state.step = 2;
+        this.userStates.set(userId, state);
+
+        await this.bot!.sendMessage(
+          chatId,
+          `📱 Mijoz telefon raqamini yuboring:\n\nMisol: +998901234567`,
+          {
+            reply_markup: {
+              keyboard: [
+                [{ text: '📱 Telefon raqamini yuborish', request_contact: true }]
+              ],
+              resize_keyboard: true,
+              one_time_keyboard: true
+            } as any
+          }
+        );
+        return;
+      } else if (state.action === 'doctor_self_booking_phone') {
+        let phoneNumber: string | null = null;
+
+        if (msg.contact?.phone_number) {
+          phoneNumber = msg.contact.phone_number;
+        } else if (msg.text) {
+          const phoneText = msg.text.trim().replace(/\s/g, '');
+          if (/^\+?[0-9]{10,15}$/.test(phoneText)) {
+            phoneNumber = phoneText;
+          }
+        }
+
+        if (!phoneNumber) {
+          await this.bot!.sendMessage(chatId, `❌ Noto'g'ri telefon raqami.\n\nMisol: +998901234567`);
+          return;
+        }
+
+        if (!phoneNumber.startsWith('+')) {
+          if (phoneNumber.startsWith('998')) phoneNumber = `+${phoneNumber}`;
+          else phoneNumber = `+998${phoneNumber}`;
+        }
+
+        const doctor = await this.getUserByTelegramId(userId);
+        if (!doctor || doctor.role !== UserRole.DOCTOR) {
+          await this.bot!.sendMessage(chatId, `❌ Doktor topilmadi. /start yuboring.`);
+          this.userStates.delete(userId);
+          return;
+        }
+
+        const bookingService = new BookingService();
+        const booking = await bookingService.create({
+          phone_number: phoneNumber,
+          client_name: state.clientName,
+          doctor_id: doctor.id,
+          date: state.doctorDate,
+          time: state.doctorTime,
+        });
+
+        this.userStates.delete(userId);
+
+        await this.bot!.sendMessage(chatId, `✅ Bron yaratildi: #${booking.id}`, {
+          reply_markup: { remove_keyboard: true } as any
+        });
+
+        await this.bot!.sendMessage(
+          chatId,
+          `📋 *Bron ma'lumotlari*\n\n` +
+          `👤 Mijoz: ${state.clientName}\n` +
+          `📱 Telefon: ${phoneNumber}\n` +
+          `📆 Sana: ${state.doctorDate}\n` +
+          `⏰ Vaqt: ${state.doctorTime}\n` +
+          `📊 Holat: ${booking.status}`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '📅 Kalendarga qaytish', callback_data: `doctor_date_${state.doctorDate}` }],
+                [{ text: '🏠 Bosh sahifa', callback_data: 'start' }]
+              ]
+            }
+          }
+        );
+        return;
       } else if (state.action === 'booking_service') {
         // Обработка выбора сервиса (текстовый ввод не используется, только callback)
         // Это состояние используется только для хранения данных
       }
     } catch (error: any) {
       console.error('Error in handleStateMessage:', error);
+      if (this.isDatabaseConnectionError(error)) {
+        await this.sendDatabaseUnavailable(chatId);
+        this.userStates.delete(userId);
+        return;
+      }
       await this.bot!.sendMessage(chatId, '❌ Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.');
       this.userStates.delete(userId);
     }
@@ -2248,7 +2635,7 @@ class TelegramService {
         const emoji = isWeekend ? '📌' : '📆';
 
         return {
-          text: `${emoji} ${day}`,
+          text: `📅 ${day}`,
           callback_data: `date_${dateStr}`
         };
       });
@@ -2287,15 +2674,131 @@ class TelegramService {
     return buttons;
   }
 
+  private createTimeStatusKeyboard(slots: Array<{ time: string; isBooked: boolean; isPast: boolean }>): TelegramBot.InlineKeyboardButton[][] {
+    const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+
+    for (let i = 0; i < slots.length; i += 2) {
+      const row = slots.slice(i, i + 2).map(slot => {
+        if (slot.isBooked) {
+          return { text: `🔴 ${slot.time}`, callback_data: `booked_time_${slot.time}` };
+        }
+        if (slot.isPast) {
+          return { text: `⚪ ${slot.time}`, callback_data: `booked_time_${slot.time}` };
+        }
+        return { text: `🟢 ${slot.time}`, callback_data: `time_${slot.time}` };
+      });
+      buttons.push(row);
+    }
+
+    buttons.push([{ text: '⬅️ Orqaga', callback_data: 'back_to_date' }]);
+    return buttons;
+  }
+
+  private createDoctorMonthKeyboard(months: string[]): TelegramBot.InlineKeyboardButton[][] {
+    const buttons = months.map(monthKey => ([{
+      text: `📅 ${this.formatMonthName(monthKey)}`,
+      callback_data: `doctor_month_${monthKey}`
+    }]));
+
+    buttons.push([{ text: '🏠 Bosh sahifa', callback_data: 'start' }]);
+    return buttons;
+  }
+
+  private createDoctorDayKeyboard(days: number[], monthKey: string): TelegramBot.InlineKeyboardButton[][] {
+    const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+    const [year, month] = monthKey.split('-').map(Number);
+
+    for (let i = 0; i < days.length; i += 4) {
+      buttons.push(days.slice(i, i + 4).map(day => ({
+        text: `📆 ${day}`,
+        callback_data: `doctor_date_${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      })));
+    }
+
+    buttons.push([{ text: '⬅️ Oyni qayta tanlash', callback_data: 'doctor_calendar' }]);
+    return buttons;
+  }
+
+  private createDoctorTimeKeyboard(slots: Array<{ time: string; isBooked: boolean; isPast: boolean; booking?: any }>): TelegramBot.InlineKeyboardButton[][] {
+    const buttons: TelegramBot.InlineKeyboardButton[][] = [];
+
+    for (let i = 0; i < slots.length; i += 2) {
+      const row = slots.slice(i, i + 2).map(slot => {
+        if (slot.isBooked && slot.booking?.id) {
+          return { text: `🔴 ${slot.time}`, callback_data: `doctor_booked_${slot.booking.id}` };
+        }
+        if (slot.isPast) {
+          return { text: `⚪ ${slot.time}`, callback_data: `doctor_past_${slot.time.replace(':', '')}` };
+        }
+        return { text: `🟢 ${slot.time}`, callback_data: `doctor_free_${slot.time.replace(':', '')}` };
+      });
+      buttons.push(row);
+    }
+
+    buttons.push([{ text: '⬅️ Kunni qayta tanlash', callback_data: 'doctor_calendar' }]);
+    return buttons;
+  }
+
   /**
    * Получить доступные слоты для даты (с интервалом 30 минут)
    */
+  private async getTimeSlotsWithStatus(doctorId: string, date: string): Promise<Array<{ time: string; isBooked: boolean; isPast: boolean; booking?: any }>> {
+    const doctor = await prisma.user.findUnique({
+      where: { id: doctorId },
+      select: { work_start_time: true, work_end_time: true },
+    });
+
+    const [startHour, startMinute] = (doctor?.work_start_time || '09:00').split(':').map(Number);
+    const [endHour, endMinute] = (doctor?.work_end_time || '18:00').split(':').map(Number);
+    const selectedDateForSchedule = new Date(date);
+    const sundayStartMinutes = selectedDateForSchedule.getDay() === 0 ? 11 * 60 : 0;
+    const startMinutes = Math.max(startHour * 60 + startMinute, sundayStartMinutes);
+    const endMinutes = endHour * 60 + endMinute;
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        doctor_id: doctorId,
+        date,
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.APPROVED],
+        },
+      },
+      include: {
+        client: true,
+      },
+    });
+
+    const bookingsByTime = new Map(bookings.map(booking => [booking.time, booking]));
+    const today = new Date();
+    const selectedDate = new Date(date);
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    const isToday = selectedDate.getTime() === today.getTime();
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const slots: Array<{ time: string; isBooked: boolean; isPast: boolean; booking?: any }> = [];
+    for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+      const time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+      const booking = bookingsByTime.get(time);
+      slots.push({
+        time,
+        isBooked: !!booking,
+        isPast: selectedDate < today || (isToday && minutes <= nowMinutes),
+        booking,
+      });
+    }
+
+    return slots;
+  }
+
   private async getAvailableSlots(doctorId: string, date: string): Promise<string[]> {
     const bookingService = new BookingService();
     const slots: string[] = [];
 
     // Рабочие часы (9:00 - 18:00)
-    const startHour = 9;
+    const selectedDate = new Date(date);
+    const startHour = selectedDate.getDay() === 0 ? 11 : 9;
     const endHour = 18;
 
     // Генерируем слоты каждые 30 минут

@@ -80,8 +80,13 @@ export async function initializeDatabase() {
     const existingXusanbek = await retryDatabaseOperation(
       () => prisma.user.findFirst({
         where: {
-          role: UserRole.DOCTOR,
-          name: 'Xusanbek'
+          OR: [
+            { tg_id: '6329669015' },
+            { tg_username: 'sunnat_xatna_uz' },
+            { phone_number: '+998970335517' },
+            { name: 'Xusanbek' },
+            { name: 'xusanbek' },
+          ],
         },
       })
     );
@@ -92,6 +97,7 @@ export async function initializeDatabase() {
           data: {
             name: 'Xusanbek',
             phone_number: '+998970335517',
+            tg_id: '6329669015',
             tg_username: 'sunnat_xatna_uz',
             role: UserRole.DOCTOR,
             working: true,
@@ -106,6 +112,22 @@ export async function initializeDatabase() {
         console.log('[Init] ✅ Doktor Xusanbek muvaffaqiyatli yaratildi');
       }
     } else {
+      await retryDatabaseOperation(
+        () => prisma.user.update({
+          where: { id: existingXusanbek.id },
+          data: {
+            name: 'Xusanbek',
+            phone_number: '+998970335517',
+            tg_id: '6329669015',
+            tg_username: 'sunnat_xatna_uz',
+            role: UserRole.DOCTOR,
+            working: true,
+            work_start_time: '09:00',
+            work_end_time: '18:00',
+            profile_image: '/uploads/xusanbek.jpg',
+          },
+        })
+      );
       console.log('[Init] ✅ Doktor Xusanbek allaqachon mavjud');
     }
 

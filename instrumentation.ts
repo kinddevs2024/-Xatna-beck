@@ -6,6 +6,9 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'edge') {
     return;
   }
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.npm_lifecycle_event === 'build') {
+    return;
+  }
   if (!process.env.BOT_TOKEN?.trim()) {
     console.warn('[instrumentation] BOT_TOKEN empty — skip auto-init (use `npm run bot` for polling).');
     return;
