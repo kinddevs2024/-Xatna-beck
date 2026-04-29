@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { telegramService } from '@/lib/services/telegram.service';
+import telegramService from '@/lib/services/telegram.service';
 import { initializeServer } from '@/lib/server-init';
 import { handleTelegramOptions, telegramCorsHeaders } from '@/lib/telegram-http';
 
@@ -18,11 +18,15 @@ export async function GET() {
         // Initialize server first
         await initializeServer();
 
-        // Ensure telegram service is initialized
+        // First attempt to initialize the telegram service
         await telegramService.ensureInitialized();
+        let isInitialized = telegramService.isInitialized();
 
-        // Check if it's actually running
-        const isInitialized = telegramService.isInitialized();
+        if (!isInitialized) {
+            console.log('[Telegram Start] ⚠️ Initial initialization did not confirm. Resetting bot state and retrying...');
+            await (telegramService as any).resetBot();
+            isInitialized = telegramService.isInitialized();
+        }
 
         if (isInitialized) {
             console.log('[Telegram Start] ✅ Telegram bot is running and listening');
@@ -34,17 +38,17 @@ export async function GET() {
                 },
                 { status: 200, headers: telegramCorsHeaders() }
             );
-        } else {
-            console.warn('[Telegram Start] ⚠️ Bot initialization attempted but not confirmed');
-            return NextResponse.json(
-                {
-                    status: 'initializing',
-                    message: 'Telegram bot initialization in progress',
-                    timestamp: new Date().toISOString()
-                },
-                { status: 202, headers: telegramCorsHeaders() }
-            );
         }
+
+        console.warn('[Telegram Start] ⚠️ Bot initialization attempted but still not confirmed');
+        return NextResponse.json(
+            {
+                status: 'initializing',
+                message: 'Telegram bot initialization in progress or failed, retry complete',
+                timestamp: new Date().toISOString()
+            },
+            { status: 202, headers: telegramCorsHeaders() }
+        );
     } catch (error: any) {
         console.error('[Telegram Start] ❌ Error:', error?.message || error);
         return NextResponse.json(
